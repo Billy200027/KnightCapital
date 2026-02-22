@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login</title>
+<link rel="stylesheet" href="css/styles.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js" defer></script>
+</head>
+
+<body class="login">
+
+<div class="login-box">
+   <h2>Knight Capital</h2>
+   <input type="text" id="telefono" placeholder="Número celular">
+   <input type="password" id="password" placeholder="Contraseña">
+   <button onclick="login()">Iniciar Sesión</button>
+   <p id="error"></p>
+</div>
+
+</body>
+</html>

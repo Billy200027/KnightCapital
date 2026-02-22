@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <title>Dashboard</title>
+   <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+   <h1>Knight Capital</h1>
+
+   <button onclick="mostrar('perfil')">Perfil</button>
+   <button onclick="mostrar('prestamos')">Préstamos</button>
+   <button onclick="mostrar('celulares')">Celulares</button>
+   <button onclick="logout()">Salir</button>
+
+   <hr>
+
+   <div id="contenido"></div>
+
+   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+   <script src="js/supabase.js"></script>
+   <script src="js/prestamos.js"></script>
+   <script src="js/celulares.js"></script>
+   <script src="js/dashboard.js"></script>
+
+</body>
+</html>
