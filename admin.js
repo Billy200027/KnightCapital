@@ -1,17 +1,17 @@
-// admin.js - VERSIÓN CORREGIDA Y COMPLETA
+// admin.js - VERSIÓN GOOGLE SHEETS
 
 var usuarioActual = null;
 var comprobanteActual = null;
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     verificarAdmin();
     configurarMenu();
+    await refreshCache(true);
     mostrarUsuarios();
     mostrarCuentasBancarias();
     cargarFiltroCuadros();
-    cargarComprobantes();
+    await cargarComprobantesAdmin();
     
-    // Configurar formularios
     document.getElementById('formUsuario').addEventListener('submit', crearUsuario);
     document.getElementById('formBanco').addEventListener('submit', crearCuentaBancaria);
 });
@@ -49,39 +49,32 @@ function verificarAdmin() {
     document.getElementById('nombreUsuario').textContent = sesion.usuario;
 }
 
-// TABS - CORREGIDO: Recibe el botón como parámetro
 function mostrarTab(tab, boton) {
-    // Quitar active de todos los botones
     var botones = document.querySelectorAll('.tab-btn');
     for (var i = 0; i < botones.length; i++) {
         botones[i].classList.remove('active');
     }
     
-    // Quitar active de todos los contenidos
     var contenidos = document.querySelectorAll('.tab-content');
     for (var i = 0; i < contenidos.length; i++) {
         contenidos[i].classList.remove('active');
     }
     
-    // Activar el botón clickeado
     if (boton) {
         boton.classList.add('active');
     }
     
-    // Activar el contenido correspondiente
     var tabContent = document.getElementById('tab-' + tab);
     if (tabContent) {
         tabContent.classList.add('active');
     }
     
-    // Si es comprobantes, recargar
     if (tab === 'comprobantes') {
-        cargarComprobantes();
+        cargarComprobantesAdmin();
     }
 }
 
-// USUARIOS
-function crearUsuario(e) {
+async function crearUsuario(e) {
     e.preventDefault();
     
     var username = document.getElementById('newUsername').value.toLowerCase().trim();
@@ -98,37 +91,26 @@ function crearUsuario(e) {
         return;
     }
     
-    var usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
-    
-    for (var i = 0; i < usuarios.length; i++) {
-        if (usuarios[i].usuario === username) {
-            alert('Este nombre de usuario ya existe');
-            return;
-        }
-    }
-    
-    var nuevoUsuario = {
-        id: 'user_' + Date.now(),
+    var result = await crearUsuarioSheets({
         usuario: username,
         password: password,
-        rol: rol,
-        cuentaBancaria: null,
-        status: 'active',
-        fechaRegistro: new Date().toISOString(),
-        ultimoAcceso: null
-    };
+        rol: rol
+    });
     
-    usuarios.push(nuevoUsuario);
-    localStorage.setItem('usuarios', JSON.stringify(usuarios));
+    if (!result.success) {
+        alert(result.error || 'Error al crear usuario');
+        return;
+    }
     
     document.getElementById('formUsuario').reset();
+    await refreshCache(true);
     mostrarUsuarios();
     
     alert('Usuario creado exitosamente');
 }
 
 function mostrarUsuarios() {
-    var usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+    var usuarios = getCachedUsuarios();
     var tbody = document.getElementById('tablaUsuarios');
     
     tbody.innerHTML = '';
@@ -136,10 +118,8 @@ function mostrarUsuarios() {
     for (var i = 0; i < usuarios.length; i++) {
         var u = usuarios[i];
         
-        // NO mostrar al superadmin (protegido)
+        // NO mostrar superadmin (protegido)
         if (u.rol === 'superadmin') continue;
-        
-        // No mostrar al usuario actual (admin logueado)
         if (u.id === usuarioActual.id) continue;
         
         var tr = document.createElement('tr');
@@ -167,53 +147,50 @@ function mostrarUsuarios() {
     }
 }
 
-function eliminarUsuario(userId) {
+async function eliminarUsuario(userId) {
     if (!confirm('¿Estás seguro de eliminar este usuario?')) {
         return;
     }
     
-    var usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+    var result = await actualizarUsuarioSheets(userId, {status: 'inactive'});
     
-    for (var i = 0; i < usuarios.length; i++) {
-        if (usuarios[i].id === userId) {
-            usuarios[i].status = 'inactive';
-            break;
-        }
+    if (!result.success) {
+        alert('Error al eliminar usuario');
+        return;
     }
     
-    localStorage.setItem('usuarios', JSON.stringify(usuarios));
+    await refreshCache(true);
     mostrarUsuarios();
     
     alert('Usuario eliminado');
 }
 
-// CUENTAS BANCARIAS
-function crearCuentaBancaria(e) {
+async function crearCuentaBancaria(e) {
     e.preventDefault();
     
     var cuenta = {
-        id: 'bank_' + Date.now(),
         banco: document.getElementById('bankNombre').value,
         numero: document.getElementById('bankNumero').value,
         titular: document.getElementById('bankTitular').value,
-        tipo: document.getElementById('bankTipo').value,
-        activa: true,
-        fechaRegistro: new Date().toISOString()
+        tipo: document.getElementById('bankTipo').value
     };
     
-    var cuentas = JSON.parse(localStorage.getItem('cuentasBancarias')) || [];
-    cuentas.push(cuenta);
+    var result = await crearCuentaBancoSheets(cuenta);
     
-    localStorage.setItem('cuentasBancarias', JSON.stringify(cuentas));
+    if (!result.success) {
+        alert('Error al crear cuenta: ' + (result.error || 'Desconocido'));
+        return;
+    }
     
     document.getElementById('formBanco').reset();
+    await refreshCache(true);
     mostrarCuentasBancarias();
     
     alert('Cuenta bancaria registrada');
 }
 
 function mostrarCuentasBancarias() {
-    var cuentas = JSON.parse(localStorage.getItem('cuentasBancarias')) || [];
+    var cuentas = getCachedCuentasBanco();
     var contenedor = document.getElementById('listaCuentas');
     
     if (cuentas.length === 0) {
@@ -250,39 +227,26 @@ function mostrarCuentasBancarias() {
     }
 }
 
-function toggleCuenta(cuentaId) {
-    var cuentas = JSON.parse(localStorage.getItem('cuentasBancarias')) || [];
-    
-    for (var i = 0; i < cuentas.length; i++) {
-        if (cuentas[i].id === cuentaId) {
-            cuentas[i].activa = !(cuentas[i].activa !== false);
-            break;
-        }
+async function toggleCuenta(cuentaId) {
+    var result = await toggleCuentaBancoSheets(cuentaId);
+    if (result.success) {
+        await refreshCache(true);
+        mostrarCuentasBancarias();
     }
-    
-    localStorage.setItem('cuentasBancarias', JSON.stringify(cuentas));
-    mostrarCuentasBancarias();
 }
 
-function eliminarCuenta(cuentaId) {
+async function eliminarCuenta(cuentaId) {
     if (!confirm('¿Eliminar esta cuenta bancaria?')) return;
     
-    var cuentas = JSON.parse(localStorage.getItem('cuentasBancarias')) || [];
-    var filtradas = [];
-    
-    for (var i = 0; i < cuentas.length; i++) {
-        if (cuentas[i].id !== cuentaId) {
-            filtradas.push(cuentas[i]);
-        }
+    var result = await eliminarCuentaBancoSheets(cuentaId);
+    if (result.success) {
+        await refreshCache(true);
+        mostrarCuentasBancarias();
     }
-    
-    localStorage.setItem('cuentasBancarias', JSON.stringify(filtradas));
-    mostrarCuentasBancarias();
 }
 
-// COMPROBANTES
 function cargarFiltroCuadros() {
-    var cuadros = JSON.parse(localStorage.getItem('cuadros')) || [];
+    var cuadros = getCachedCuadros();
     var select = document.getElementById('filtroCuadro');
     
     if (!select) return;
@@ -297,45 +261,43 @@ function cargarFiltroCuadros() {
     }
 }
 
-function cargarComprobantes() {
-    var cuadros = JSON.parse(localStorage.getItem('cuadros')) || [];
+async function cargarComprobantesAdmin() {
+    var cuadros = getCachedCuadros();
     var filtro = document.getElementById('filtroCuadro').value;
     var contenedor = document.getElementById('listaComprobantes');
     
     if (!contenedor) return;
     
-    var todosComprobantes = [];
+    var todos = [];
     
     for (var i = 0; i < cuadros.length; i++) {
-        var cuadro = cuadros[i];
+        if (filtro !== 'todos' && cuadros[i].id !== filtro) continue;
         
-        if (filtro !== 'todos' && cuadro.id !== filtro) continue;
-        if (!cuadro.comprobantes) continue;
+        var comps = await getComprobantesDrive(cuadros[i].id);
         
-        for (var j = 0; j < cuadro.comprobantes.length; j++) {
-            var comp = cuadro.comprobantes[j];
-            if (comp.estado === 'pendiente') {
-                todosComprobantes.push({
-                    comprobante: comp,
-                    cuadro: cuadro
+        for (var j = 0; j < comps.length; j++) {
+            if (comps[j].estado === 'pendiente') {
+                todos.push({
+                    comprobante: comps[j],
+                    cuadro: cuadros[i]
                 });
             }
         }
     }
     
-    if (todosComprobantes.length === 0) {
+    if (todos.length === 0) {
         contenedor.innerHTML = '<p class="empty">No hay comprobantes pendientes</p>';
         return;
     }
     
-    todosComprobantes.sort(function(a, b) {
+    contenedor.innerHTML = '';
+    
+    todos.sort(function(a, b) {
         return new Date(a.comprobante.fechaSubida) - new Date(b.comprobante.fechaSubida);
     });
     
-    contenedor.innerHTML = '';
-    
-    for (var i = 0; i < todosComprobantes.length; i++) {
-        var item = todosComprobantes[i];
+    for (var i = 0; i < todos.length; i++) {
+        var item = todos[i];
         var comp = item.comprobante;
         var cuadro = item.cuadro;
         
@@ -348,175 +310,34 @@ function cargarComprobantes() {
             '<div class="comp-admin-info">' +
             '<h4>' + comp.username + '</h4>' +
             '<p><strong>' + cuadro.nombre + '</strong> - Semana ' + comp.semana + '</p>' +
-            '<p>Monto: $' + cuadro.montoSemanal + ' • Subido: ' + fecha + '</p>' +
+            '<p>$' + cuadro.montoSemanal + ' • ' + fecha + '</p>' +
             '</div>' +
             '<div class="comp-admin-actions">' +
-            '<button class="btn-primary" onclick="verDetalleComprobante(\'' + cuadro.id + '\', \'' + comp.id + '\')">' +
+            '<button class="btn-primary" onclick="verYConfirmar(\'' + comp.id + '\', \'' + comp.driveUrl + '\', \'' + cuadro.nombre + '\', \'' + comp.username + '\')">' +
             'Ver y Confirmar</button>' +
             '</div>';
         
         contenedor.appendChild(div);
     }
-}
-
-function verDetalleComprobante(cuadroId, comprobanteId) {
-    var cuadros = JSON.parse(localStorage.getItem('cuadros')) || [];
-    
-    comprobanteActual = null;
-    
-    for (var i = 0; i < cuadros.length; i++) {
-        if (cuadros[i].id === cuadroId && cuadros[i].comprobantes) {
-            for (var j = 0; j < cuadros[i].comprobantes.length; j++) {
-                if (cuadros[i].comprobantes[j].id === comprobanteId) {
-                    comprobanteActual = {
-                        comprobante: cuadros[i].comprobantes[j],
-                        cuadro: cuadros[i],
-                        cuadroIndex: i,
-                        compIndex: j
-                    };
-                    break;
-                }
-            }
-            break;
-        }
-    }
-    
-    if (!comprobanteActual) return;
-    
-    var comp = comprobanteActual.comprobante;
-    var cuadro = comprobanteActual.cuadro;
-    
-    document.getElementById('detalleUsuario').textContent = comp.username;
-    document.getElementById('detalleCuadro').textContent = cuadro.nombre;
-    document.getElementById('detalleSemana').textContent = comp.semana;
-    document.getElementById('detalleMonto').textContent = cuadro.montoSemanal;
-    document.getElementById('detalleFecha').textContent = new Date(comp.fechaSubida).toLocaleString('es-ES');
-    document.getElementById('detalleNotas').textContent = comp.notas || 'Sin notas';
-    
-    var archivoDiv = document.getElementById('detalleArchivo');
-    if (comp.tipoArchivo && comp.tipoArchivo.startsWith('image/')) {
-        archivoDiv.innerHTML = '<img src="' + comp.archivo + '" style="max-width: 100%; border-radius: 10px;">';
-    } else {
-        archivoDiv.innerHTML = '<iframe src="' + comp.archivo + '" style="width: 100%; height: 400px; border: 1px solid #ddd; border-radius: 10px;"></iframe>';
-    }
-    
-    document.getElementById('modalVerComprobante').classList.add('active');
-}
-
-function cerrarModalVer() {
-    document.getElementById('modalVerComprobante').classList.remove('active');
-    comprobanteActual = null;
-}
-
-function confirmarComprobante() {
-    if (!comprobanteActual) return;
-    
-    if (!confirm('¿Confirmar este pago?')) return;
-    
-    var cuadros = JSON.parse(localStorage.getItem('cuadros')) || [];
-    var comp = cuadros[comprobanteActual.cuadroIndex].comprobantes[comprobanteActual.compIndex];
-    
-    comp.estado = 'confirmado';
-    comp.confirmadoPor = usuarioActual.usuario;
-    comp.fechaConfirmacion = new Date().toISOString();
-    
-    localStorage.setItem('cuadros', JSON.stringify(cuadros));
-    
-    // Notificación al usuario
-    var notificaciones = JSON.parse(localStorage.getItem('notificaciones')) || [];
-    var fechaEliminar = new Date();
-    fechaEliminar.setDate(fechaEliminar.getDate() + 14);
-    
-    notificaciones.push({
-        id: 'notif_' + Date.now(),
-        userId: comp.userId,
-        tipo: 'pago_confirmado',
-        mensaje: '✅ Tu pago de la semana ' + comp.semana + ' ha sido confirmado',
-        cuadroId: comprobanteActual.cuadro.id,
-        cuadroNombre: comprobanteActual.cuadro.nombre,
-        semana: comp.semana,
-        fechaCreacion: new Date().toISOString(),
-        autoEliminar: fechaEliminar.toISOString(),
-        leida: false
-    });
-    
-    localStorage.setItem('notificaciones', JSON.stringify(notificaciones));
-    
-    cerrarModalVer();
-    cargarComprobantes();
-    
-    alert('✅ Comprobante confirmado');
-}
-
-function cerrarSesion() {
-    localStorage.removeItem('sesionActiva');
-    window.location.href = 'login.html';
-}
-
-
-// Agregar estas funciones a admin.js
-
-async function cargarComprobantesAdmin() {
-    var cuadros = getCachedCuadros();
-    var filtro = document.getElementById('filtroCuadro').value;
-    var contenedor = document.getElementById('listaComprobantes');
-    
-    var todos = [];
-    
-    for(var i = 0; i < cuadros.length; i++) {
-        if(filtro !== 'todos' && cuadros[i].id !== filtro) continue;
-        
-        var comps = await getComprobantesDrive(cuadros[i].id);
-        
-        comps.forEach(function(c) {
-            if(c.estado === 'pendiente') {
-                todos.push({
-                    comprobante: c,
-                    cuadro: cuadros[i]
-                });
-            }
-        });
-    }
-    
-    if(todos.length === 0) {
-        contenedor.innerHTML = '<p class="empty">No hay comprobantes pendientes</p>';
-        return;
-    }
-    
-    contenedor.innerHTML = '';
-    
-    todos.forEach(function(item) {
-        var div = document.createElement('div');
-        div.className = 'comprobante-admin-item';
-        
-        div.innerHTML = 
-            '<div class="comp-admin-info">' +
-            '<h4>' + item.comprobante.username + '</h4>' +
-            '<p><strong>' + item.cuadro.nombre + '</strong> - Semana ' + item.comprobante.semana + '</p>' +
-            '<p>$' + item.cuadro.montoSemanal + ' • ' + new Date(item.comprobante.fechaSubida).toLocaleString() + '</p>' +
-            '</div>' +
-            '<div class="comp-admin-actions">' +
-            '<button class="btn-primary" onclick="verYConfirmar(\'' + item.comprobante.id + '\', \'' + item.comprobante.driveUrl + '\', \'' + item.cuadro.nombre + '\', \'' + item.comprobante.username + '\')">' +
-            'Ver y Confirmar</button>' +
-            '</div>';
-        
-        contenedor.appendChild(div);
-    });
 }
 
 function verYConfirmar(compId, driveUrl, cuadroNombre, username) {
-    if(confirm('¿Confirmar pago de ' + username + ' por semana de ' + cuadroNombre + '?\n\nSe abrirá Drive para verificar.')) {
+    if (confirm('¿Confirmar pago de ' + username + '?\n\nSe abrirá Drive para verificar.')) {
         window.open(driveUrl, '_blank');
         
-        // Confirmar después de ver
         setTimeout(async function() {
-            if(confirm('¿Ya verificaste el comprobante? ¿Confirmar pago?')) {
+            if (confirm('¿Ya verificaste el comprobante? ¿Confirmar pago?')) {
                 var result = await confirmarComprobanteDrive(compId, usuarioActual.usuario);
-                if(result.success) {
+                if (result.success) {
                     alert('✅ Pago confirmado');
                     await cargarComprobantesAdmin();
                 }
             }
         }, 1000);
     }
+}
+
+function cerrarSesion() {
+    localStorage.removeItem('sesionActiva');
+    window.location.href = 'login.html';
 }
