@@ -1,5 +1,6 @@
 // login.js - VERSIÓN SUPABASE FUNCIONAL
 
+// Configurar Supabase
 const SUPABASE_URL = 'https://ulylpdeutafjuuevdllz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_rygFKvTzyxTvn9SfTHcYdA_tEeS6OTH';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -35,6 +36,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
     errorDiv.textContent = '';
     
     try {
+        // Buscar en Supabase
         const { data: usuarios, error } = await supabase
             .from('usuarios')
             .select('*')
