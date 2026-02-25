@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cuadros App - Cuentas para Pagar</title>
     <link rel="stylesheet" href="panel.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <style>
         .banco-card {
             background: white;
@@ -104,6 +103,20 @@
         .copy-btn.copied {
             background: #28a745;
         }
+        
+        .instrucciones {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px 20px;
+            border-radius: 0 10px 10px 0;
+            margin-top: 15px;
+            color: #856404;
+        }
+        
+        .instrucciones strong {
+            display: block;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -116,7 +129,7 @@
             <div class="logo-mini">
                 <div class="mini-square"></div>
                 <div class="mini-square"></div>
-                <div class="minimini-square"></div>
+                <div class="mini-square"></div>
                 <div class="mini-square"></div>
             </div>
             <h3>Menú Principal</h3>
@@ -145,16 +158,13 @@
         <section class="section">
             <h2>🏦 Cuentas Bancarias Disponibles</h2>
             <div id="listaBancos">
+                <!-- Se llena con JavaScript -->
             </div>
         </section>
     </main>
 
     <script>
-        // Configuración Supabase
-        const SUPABASE_URL = 'https://ulylpdeutafjuuevdllz.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_rygFKvTzyxTvn9SfTHcYdA_tEeS6OTH';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
+        // Configuración básica (copiar de panel.js)
         var usuarioActual = null;
         var esAdmin = false;
         
@@ -201,64 +211,54 @@
             });
         }
         
-        async function mostrarBancos() {
+        function mostrarBancos() {
+            var cuentas = JSON.parse(localStorage.getItem('cuentasBancarias')) || [];
             var contenedor = document.getElementById('listaBancos');
             
-            try {
-                const { data: cuentas, error } = await supabase
-                    .from('cuentas_bancarias')
-                    .select('*')
-                    .order('fecha_registro', { ascending: false });
+            if (cuentas.length === 0) {
+                contenedor.innerHTML = '<p class="empty">No hay cuentas bancarias registradas aún.</p>';
+                return;
+            }
+            
+            contenedor.innerHTML = '';
+            
+            for (var i = 0; i < cuentas.length; i++) {
+                var c = cuentas[i];
+                var div = document.createElement('div');
+                div.className = 'banco-card';
                 
-                if (error) {
-                    contenedor.innerHTML = '<p class="empty">Error cargando cuentas</p>';
-                    return;
+                div.innerHTML = 
+                    '<div class="banco-header">' +
+                    '<div class="banco-icon">🏦</div>' +
+                    '<div class="banco-title">' +
+                    '<h3>' + c.banco + '</h3>' +
+                    '<span>Cuenta de ' + c.tipo + '</span>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="banco-details">' +
+                    '<div class="detail-row">' +
+                    '<span>Número de cuenta:</span>' +
+                    '<strong id="numero-' + i + '">' + c.numero + '</strong>' +
+                    '</div>' +
+                    '<div class="detail-row">' +
+                    '<span>Titular:</span>' +
+                    '<strong>' + c.titular + '</strong>' +
+                    '</div>' +
+                    '</div>' +
+                    '<button class="copy-btn" onclick="copiarNumero(\'' + c.numero + '\', this)">' +
+                    '📋 Copiar número de cuenta' +
+                    '</button>';
+                
+                if (c.instrucciones) {
+                    div.innerHTML += '<div class="instrucciones"><strong>📋 Instrucciones:</strong>' + c.instrucciones + '</div>';
                 }
                 
-                if (!cuentas || cuentas.length === 0) {
-                    contenedor.innerHTML = '<p class="empty">No hay cuentas bancarias registradas aún.</p>';
-                    return;
-                }
-                
-                contenedor.innerHTML = '';
-                
-                for (var i = 0; i < cuentas.length; i++) {
-                    var c = cuentas[i];
-                    var div = document.createElement('div');
-                    div.className = 'banco-card';
-                    
-                    div.innerHTML = 
-                        '<div class="banco-header">' +
-                        '<div class="banco-icon">🏦</div>' +
-                        '<div class="banco-title">' +
-                        '<h3>' + c.banco + '</h3>' +
-                        '<span>Cuenta de ' + c.tipo + '</span>' +
-                        '</div>' +
-                        '</div>' +
-                        '<div class="banco-details">' +
-                        '<div class="detail-row">' +
-                        '<span>Número de cuenta:</span>' +
-                        '<strong id="numero-' + i + '">' + c.numero + '</strong>' +
-                        '</div>' +
-                        '<div class="detail-row">' +
-                        '<span>Titular:</span>' +
-                        '<strong>' + c.titular + '</strong>' +
-                        '</div>' +
-                        '</div>' +
-                        '<button class="copy-btn" onclick="copiarNumero(\'' + c.numero + '\', this)">' +
-                        '📋 Copiar número de cuenta' +
-                        '</button>';
-                    
-                    contenedor.appendChild(div);
-                }
-                
-            } catch (err) {
-                console.error('Error:', err);
-                contenedor.innerHTML = '<p class="empty">Error de conexión</p>';
+                contenedor.appendChild(div);
             }
         }
         
         function copiarNumero(numero, btn) {
+            // Crear elemento temporal
             var temp = document.createElement('textarea');
             temp.value = numero;
             document.body.appendChild(temp);
@@ -266,6 +266,7 @@
             document.execCommand('copy');
             document.body.removeChild(temp);
             
+            // Cambiar texto del botón
             var originalText = btn.innerHTML;
             btn.innerHTML = '✅ ¡Copiado!';
             btn.classList.add('copied');
