@@ -1,6 +1,5 @@
-// panel.js - VERSIÓN SUPABASE COMPLETA
+// panel.js - VERSIÓN SUPABASE FUNCIONAL
 
-// Configurar Supabase
 const SUPABASE_URL = 'https://ulylpdeutafjuuevdllz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_rygFKvTzyxTvn9SfTHcYdA_tEeS6OTH';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -63,13 +62,12 @@ async function mostrarCuadros() {
     var contenedor = document.getElementById('listaCuadros');
     
     try {
-        // Obtener cuadros de Supabase
         const { data: cuadros, error } = await supabase
             .from('cuadros')
             .select('*');
         
         if (error) {
-            console.error('Error cargando cuadros:', error);
+            console.error('Error:', error);
             contenedor.innerHTML = '<p class="empty">Error cargando cuadros</p>';
             return;
         }
@@ -80,21 +78,19 @@ async function mostrarCuadros() {
             return;
         }
         
-        // Obtener participantes para todos los cuadros
+        // Obtener participantes
         const { data: participantes, error: errPart } = await supabase
             .from('participantes')
             .select('*');
         
-        if (errPart) {
-            console.error('Error cargando participantes:', errPart);
-        }
+        if (errPart) console.error('Error participantes:', errPart);
         
         contenedor.innerHTML = '';
         
         for (var i = 0; i < cuadros.length; i++) {
             var cuadro = cuadros[i];
             
-            // Asignar participantes a este cuadro
+            // Asignar participantes
             cuadro.participantes = [];
             for (var j = 0; j < (participantes || []).length; j++) {
                 if (participantes[j].cuadro_id === cuadro.id) {
@@ -104,7 +100,6 @@ async function mostrarCuadros() {
             
             cuadro = actualizarEstadoCuadro(cuadro);
             
-            // Si cambió el estado, actualizar en BD
             if (cuadro.estado_cambiado) {
                 await supabase
                     .from('cuadros')
@@ -193,7 +188,7 @@ async function completarCuadroAutomaticamente(cuadro) {
             };
             
             await supabase.from('participantes').insert([nuevoParticipante]);
-            cuadro.participantes.push(nuevoParticipante);
+            cuadro.participantes.push(nuevoParticipanteante);
         }
     }
 }
@@ -291,7 +286,6 @@ async function unirseACuadro(cuadroId) {
     }
     
     try {
-        // Obtener cuadro actual
         const { data: cuadros, error } = await supabase
             .from('cuadros')
             .select('*')
@@ -420,173 +414,103 @@ document.getElementById('formCuadro').addEventListener('submit', async function(
     var nombre = document.getElementById('nombreCuadro').value;
     var semanas = parseInt(document.getElementById('numSemanas').value);
     var monto = parseInt(document.getElementById('montoSemanal').value);
-    var bloqueadosInput = document.getElementByString()
-            };
-            
-            await supabase.from('participantes').insert([nuevoParticipante]);
-            cuadro.participantes.push(nuevoParticipante);
-        }
-    }
-}
-
-function encontrarNumeroDisponible(cuadro) {
-    for (var num = 1; num <= cuadro.semanas; num++) {
-        if (cuadro.numeros_bloqueados && cuadro.numeros_bloqueados.indexOf(num) !== -1) continue;
-        
-        var ocupado = false;
-        for (var j = 0; j < cuadro.participantes.length; j++) {
-            if (cuadro.participantes[j].numero === num) {
-                ocupado = true;
-                break;
-            }
-        }
-        
-        if (!ocupado) return num;
-    }
-    return null;
-}
-
-function crearTarjetaCuadro(cuadro) {
-    var div = document.createElement('div');
-    div.className = 'cuadro-card';
+    var bloqueadosInput = document.getElementById('numerosBloqueados').value;
     
-    var estadoClass = 'estado-' + cuadro.estado;
-    var estadoTexto = cuadro.estado.toUpperCase();
-    
-    var yaParticipa = false;
-    var miNumero = null;
-    for (var i = 0; i < cuadro.participantes.length; i++) {
-        if (cuadro.participantes[i].user_id === usuarioActual.id) {
-            yaParticipa = true;
-            miNumero = cuadro.participantes[i].numero;
-            break;
-        }
-    }
-    
-    var participantesReales = 0;
-    for (var i = 0; i < cuadro.participantes.length; i++) {
-        if (!cuadro.participantes[i].es_sistema) {
-            participantesReales++;
-        }
-    }
-    
-    var bloqueados = cuadro.numeros_bloqueados || [];
-    var ocupadosParaUsuario = participantesReales + bloqueados.length;
-    var disponiblesParaUsuario = cuadro.semanas - ocupadosParaUsuario;
-    var progreso = (ocupadosParaUsuario / cuadro.semanas) * 100;
-    
-    var html = '<div class="cuadro-header">' +
-        '<h3>' + cuadro.nombre + '</h3>' +
-        '<span class="estado ' + estadoClass + '">' + estadoTexto + '</span>' +
-        '</div>' +
-        '<div class="cuadro-info">' +
-        '<div class="info-row"><span>Semanas:</span> <strong>' + cuadro.semanas + '</strong></div>' +
-        '<div class="info-row"><span>Monto semanal:</span> <strong>$' + cuadro.monto_semanal + '</strong></div>' +
-        '<div class="info-row"><span>Total a recibir:</span> <strong>$' + (cuadro.semanas * cuadro.monto_semanal) + '</strong></div>' +
-        '<div class="info-row"><span>Disponibles:</span> <strong>' + disponiblesParaUsuario + ' de ' + cuadro.semanas + '</strong></div>';
-    
-    if (cuadro.estado === 'activo' && cuadro.semana_actual) {
-        html += '<div class="info-row"><span>Semana actual:</span> <strong>' + cuadro.semana_actual + '/' + cuadro.semanas + '</strong></div>';
-    }
-    
-    html += '</div>' +
-        '<div class="progress-container">' +
-        '<div class="progress-bar">' +
-        '<div class="progress-fill" style="width: ' + progreso + '%"></div>' +
-        '</div>' +
-        '<span class="progress-text">' + Math.round(progreso) + '% completado</span>' +
-        '</div>';
-    
-    html += '<div class="cuadro-actions">';
-    
-    if (esAdmin) {
-        html += '<button class="btn-secondary" onclick="verDetallesCuadro(\'' + cuadro.id + '\')">Ver Detalles</button>';
-    } else if (yaParticipa) {
-        html += '<div class="mi-numero">Tu número: ' + miNumero + '</div>';
-    } else if (cuadro.estado === 'abierto' && disponiblesParaUsuario > 0) {
-        html += '<button class="btn-primary" onclick="unirseACuadro(\'' + cuadro.id + '\')">Unirme al Cuadro</button>';
-    } else {
-        html += '<button class="btn-secondary" disabled>Cuadro Cerrado</button>';
-    }
-    
-    html += '</div>';
-    
-    div.innerHTML = html;
-    return div;
-}
-
-async function unirseACuadro(cuadroId) {
-    if (esAdmin) {
-        alert('El administrador no puede participar en cuadros.');
+    if (semanas < 5 || semanas > 25) {
+        alert('El número de semanas debe estar entre 5 y 25');
         return;
     }
     
+    var bloqueados = [];
+    if (bloqueadosInput.trim() !== '') {
+        var partes = bloqueadosInput.split(',');
+        for (var i = 0; i < partes.length; i++) {
+            var num = parseInt(partes[i].trim());
+            if (!isNaN(num) && num > 0 && num <= semanas) {
+                bloqueados.push(num);
+            }
+        }
+    }
+    
+    var nuevoCuadro = {
+        id: 'cuadro_' + Date.now(),
+        nombre: nombre,
+        semanas: semanas,
+        monto_semanal: monto,
+        numeros_bloqueados: bloqueados,
+        estado: 'abierto',
+        semana_actual: 0,
+        fecha_creacion: new Date().toISOString(),
+        creado_por: usuarioActual.id
+    };
+    
     try {
-        // Obtener cuadro actual
+        const { error } = await supabase
+            .from('cuadros')
+            .insert([nuevoCuadro]);
+        
+        if (error) {
+            alert('Error creando cuadro: ' + error.message);
+            return;
+        }
+        
+        cerrarModal();
+        this.reset();
+        mostrarCuadros();
+        alert('Cuadro creado exitosamente.');
+        
+    } catch (err) {
+        console.error('Error:', err);
+        alert('Error de conexión');
+    }
+});
+
+function cerrarSesion() {
+    localStorage.removeItem('sesionActiva');
+    window.location.href = 'login.html';
+}
+
+async function verDetallesCuadro(cuadroId) {
+    try {
         const { data: cuadros, error } = await supabase
             .from('cuadros')
             .select('*')
             .eq('id', cuadroId);
         
-        if (error || !cuadros || cuadros.length === 0) {
-            alert('Error al acceder al cuadro');
-            return;
-        }
+        if (error || !cuadros || cuadros.length === 0) return;
         
         var cuadro = cuadros[0];
         
-        if (cuadro.estado !== 'abierto') {
-            alert('Este cuadro ya no está disponible.');
-            return;
-        }
-        
-        // Verificar si ya participa
-        const { data: existentes, error: errExistentes } = await supabase
-            .from('participantes')
-            .select('*')
-            .eq('cuadro_id', cuadroId)
-            .eq('user_id', usuarioActual.id);
-        
-        if (errExistentes) throw errExistentes;
-        
-        if (existentes && existentes.length > 0) {
-            alert('Ya estás en este cuadro.');
-            return;
-        }
-        
-        // Obtener participantes actuales
         const { data: participantes, error: errPart } = await supabase
             .from('participantes')
-            .select('*')
+            .select('*, usuarios(usuario)')
             .eq('cuadro_id', cuadroId);
         
         if (errPart) throw errPart;
         
-        cuadro.participantes = participantes || [];
+        var mensaje = 'CUADRO: ' + cuadro.nombre + '\n\n';
+        mensaje += 'PARTICIPANTES Y SUS NÚMEROS:\n';
         
-        var numeroAsignado = generarNumeroAleatorio(cuadro);
+        var ordenados = (participantes || []).sort(function(a, b) {
+            return a.numero - b.numero;
+        });
         
-        if (!numeroAsignado) {
-            alert('No hay números disponibles.');
-            return;
+        for (var j = 0; j < ordenados.length; j++) {
+            var p = ordenados[j];
+            var nombre = p.usuarios ? p.usuarios.usuario : 'Sistema';
+            mensaje += 'Número ' + p.numero + ': ' + nombre;
+            if (p.es_sistema) mensaje += ' (Sistema)';
+            mensaje += '\n';
         }
         
-        // Insertar participante
-        const { error: errInsert } = await supabase
-            .from('participantes')
-            .insert([{
-                cuadro_id: cuadroId,
-                user_id: usuarioActual.id,
-                numero: numeroAsignado,
-                es_sistema: false,
-                fecha_ingreso: new Date().toISOString()
-            }]);
-        
-        if (errInsert) {
-            alert('Error al unirse al cuadro');
-            return;
+        if (cuadro.numeros_bloqueados && cuadro.numeros_bloqueados.length > 0) {
+            mensaje += '\nNÚMEROS BLOQUEADOS: ' + cuadro.numeros_bloqueados.join(', ');
         }
         
-        mostrarModalNumero(numeroAsignado);
-        mostrarCuadros();
-       
+        alert(mensaje);
+        
+    } catch (err) {
+        console.error('Error:', err);
+        alert('Error cargando detalles');
+    }
+}
