@@ -1,20 +1,17 @@
-// login.js - VERSIÓN ROBUSTA
+// login.js - VERSIÓN CON SUPABASE LOCAL
 
 // Esperar a que todo cargue
-window.onload = function() {
-    console.log('=== WINDOW LOADED ===');
-    iniciarLogin();
-};
-
-function iniciarLogin() {
-    // Verificar Supabase
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== DOM CARGADO ===');
+    
+    // Verificar Supabase local
     if (typeof window.supabase === 'undefined') {
         console.error('Supabase no cargó');
-        document.getElementById('errorMessage').textContent = 'Error: Librería no cargada. Intenta recargar.';
+        document.getElementById('errorMessage').textContent = 'Error: Librería no cargada';
         return;
     }
     
-    console.log('Supabase disponible:', typeof window.supabase);
+    console.log('Supabase disponible');
     
     // Configurar Supabase
     const SUPABASE_URL = 'https://ulylpdeutafjuuevdllz.supabase.co';
@@ -23,17 +20,16 @@ function iniciarLogin() {
     var supabase;
     try {
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('Cliente creado exitosamente');
+        console.log('Cliente creado');
     } catch (e) {
-        console.error('Error creando cliente:', e);
-        document.getElementById('errorMessage').textContent = 'Error inicializando conexión';
+        console.error('Error:', e);
+        document.getElementById('errorMessage').textContent = 'Error inicializando';
         return;
     }
     
     // Prevenir copiar
     document.addEventListener('copy', function(e) {
         e.preventDefault();
-        return false;
     });
     
     // Convertir a minúsculas
@@ -41,7 +37,7 @@ function iniciarLogin() {
         e.target.value = e.target.value.toLowerCase();
     });
     
-    // Manejar login
+    // Login
     document.getElementById('loginForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
@@ -50,9 +46,6 @@ function iniciarLogin() {
         var errorDiv = document.getElementById('errorMessage');
         
         errorDiv.textContent = 'Verificando...';
-        errorDiv.style.color = '#666';
-        
-        console.log('Intentando login con:', username);
         
         try {
             const { data: usuarios, error } = await supabase
@@ -62,22 +55,17 @@ function iniciarLogin() {
                 .eq('password', password)
                 .eq('status', 'active');
             
-            console.log('Respuesta:', usuarios, error);
-            
             if (error) {
-                errorDiv.textContent = 'Error de conexión: ' + error.message;
-                errorDiv.style.color = '#e74c3c';
+                errorDiv.textContent = 'Error: ' + error.message;
                 return;
             }
             
             if (!usuarios || usuarios.length === 0) {
                 errorDiv.textContent = 'Usuario o contraseña incorrectos';
-                errorDiv.style.color = '#e74c3c';
                 return;
             }
             
             var encontrado = usuarios[0];
-            console.log('Login exitoso:', encontrado.usuario);
             
             // Actualizar último acceso
             await supabase
@@ -96,9 +84,7 @@ function iniciarLogin() {
             window.location.href = 'panel.html';
             
         } catch (err) {
-            console.error('Error:', err);
-            errorDiv.textContent = 'Error inesperado: ' + err.message;
-            errorDiv.style.color = '#e74c3c';
+            errorDiv.textContent = 'Error: ' + err.message;
         }
     });
-}
+});
