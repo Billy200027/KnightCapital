@@ -1,31 +1,7 @@
-// login.js - VERSIÓN CON SUPABASE LOCAL
+// login.js - VERSIÓN LOCAL STORAGE (funciona sin internet)
 
-// Esperar a que todo cargue
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('=== DOM CARGADO ===');
-    
-    // Verificar Supabase local
-    if (typeof window.supabase === 'undefined') {
-        console.error('Supabase no cargó');
-        document.getElementById('errorMessage').textContent = 'Error: Librería no cargada';
-        return;
-    }
-    
-    console.log('Supabase disponible');
-    
-    // Configurar Supabase
-    const SUPABASE_URL = 'https://ulylpdeutafjuuevdllz.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_rygFKvTzyxTvn9SfTHcYdA_tEeS6OTH';
-    
-    var supabase;
-    try {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('Cliente creado');
-    } catch (e) {
-        console.error('Error:', e);
-        document.getElementById('errorMessage').textContent = 'Error inicializando';
-        return;
-    }
+    console.log('Login cargado');
     
     // Prevenir copiar
     document.addEventListener('copy', function(e) {
@@ -37,8 +13,8 @@ document.addEventListener('DOMContentLoaded', function() {
         e.target.value = e.target.value.toLowerCase();
     });
     
-    // Login
-    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    // Login con localStorage
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
         var username = document.getElementById('username').value.trim();
@@ -47,44 +23,35 @@ document.addEventListener('DOMContentLoaded', function() {
         
         errorDiv.textContent = 'Verificando...';
         
-        try {
-            const { data: usuarios, error } = await supabase
-                .from('usuarios')
-                .select('*')
-                .eq('usuario', username)
-                .eq('password', password)
-                .eq('status', 'active');
-            
-            if (error) {
-                errorDiv.textContent = 'Error: ' + error.message;
-                return;
+        // Obtener usuarios de localStorage
+        var usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+        
+        // Buscar usuario
+        var encontrado = null;
+        for (var i = 0; i < usuarios.length; i++) {
+            if (usuarios[i].usuario === username && usuarios[i].password === password) {
+                encontrado = usuarios[i];
+                break;
             }
-            
-            if (!usuarios || usuarios.length === 0) {
-                errorDiv.textContent = 'Usuario o contraseña incorrectos';
-                return;
-            }
-            
-            var encontrado = usuarios[0];
-            
-            // Actualizar último acceso
-            await supabase
-                .from('usuarios')
-                .update({ ultimo_acceso: new Date().toISOString() })
-                .eq('id', encontrado.id);
-            
-            // Guardar sesión
-            localStorage.setItem('sesionActiva', JSON.stringify({
-                id: encontrado.id,
-                usuario: encontrado.usuario,
-                rol: encontrado.rol
-            }));
-            
-            // Redirigir
-            window.location.href = 'panel.html';
-            
-        } catch (err) {
-            errorDiv.textContent = 'Error: ' + err.message;
         }
+        
+        if (!encontrado) {
+            errorDiv.textContent = 'Usuario o contraseña incorrectos';
+            return;
+        }
+        
+        // Actualizar último acceso
+        encontrado.ultimoAcceso = new Date().toISOString();
+        localStorage.setItem('usuarios', JSON.stringify(usuarios));
+        
+        // Guardar sesión
+        localStorage.setItem('sesionActiva', JSON.stringify({
+            id: encontrado.id,
+            usuario: encontrado.usuario,
+            rol: encontrado.rol
+        }));
+        
+        // Redirigir
+        window.location.href = 'panel.html';
     });
 });
