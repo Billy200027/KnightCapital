@@ -1,4 +1,4 @@
-// admin.js - VERSIÓN SUPABASE COMPLETA
+// admin.js - VERSIÓN SUPABASE FUNCIONAL
 
 const SUPABASE_URL = 'https://ulylpdeutafjuuevdllz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_rygFKvTzyxTvn9SfTHcYdA_tEeS6OTH';
@@ -163,40 +163,11 @@ async function mostrarUsuarios() {
 }
 
 async function eliminarUsuario(userId) {
-    if (!confirm('¿Estás seguro de eliminar este usuario?\n\nSi tiene cuadros activos, se crearán penalizaciones automáticamente.')) {
+    if (!confirm('¿Estás seguro de eliminar este usuario?')) {
         return;
     }
     
     try {
-        // Obtener datos del usuario
-        const { data: usuarios, error: errUser } = await supabase
-            .from('usuarios')
-            .select('*')
-            .eq('id', userId);
-        
-        if (errUser || !usuarios || usuarios.length === 0) return;
-        
-        var usuarioEliminar = usuarios[0];
-        
-        // Obtener cuadros activos donde participa
-        const { data: participaciones, error: errPart } = await supabase
-            .from('participantes')
-            .select('*, cuadros(*)')
-            .eq('user_id', userId);
-        
-        if (errPart) throw errPart;
-        
-        var cuadrosActivos = [];
-        for (var i = 0; i < (participaciones || []).length; i++) {
-            var p = participaciones[i];
-            if (p.cuadros && p.cuadros.estado !== 'completado') {
-                cuadrosActivos.push(p.cuadros);
-            }
-        }
-        
-        // Crear penalizaciones (opcional - aquí solo desactivamos)
-        // Por ahora solo desactivamos el usuario
-        
         const { error: errUpdate } = await supabase
             .from('usuarios')
             .update({ status: 'inactive' })
@@ -205,12 +176,7 @@ async function eliminarUsuario(userId) {
         if (errUpdate) throw errUpdate;
         
         mostrarUsuarios();
-        
-        var mensaje = 'Usuario desactivado.';
-        if (cuadrosActivos.length > 0) {
-            mensaje += ' Tenía ' + cuadrosActivos.length + ' cuadros activos.';
-        }
-        alert(mensaje);
+        alert('Usuario desactivado correctamente.');
         
     } catch (err) {
         console.error('Error:', err);
@@ -320,5 +286,3 @@ function cerrarSesion() {
     localStorage.removeItem('sesionActiva');
     window.location.href = 'login.html';
 }
-
-
