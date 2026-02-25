@@ -1,9 +1,21 @@
-// login.js - VERSIÓN SUPABASE FUNCIONAL
+// login.js - VERSIÓN DEBUG
 
 // Configurar Supabase
 const SUPABASE_URL = 'https://ulylpdeutafjuuevdllz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_rygFKvTzyxTvn9SfTHcYdA_tEeS6OTH';
+
+console.log('=== LOGIN.JS CARGADO ===');
+
+// Verificar que Supabase cargó
+if (typeof window.supabase === 'undefined') {
+    console.error('ERROR: Supabase no cargó');
+    alert('Error: No se pudo cargar Supabase. Recarga la página.');
+} else {
+    console.log('Supabase cargado correctamente');
+}
+
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+console.log('Cliente Supabase creado');
 
 // Prevenir copiar
 document.addEventListener('copy', function(e) {
@@ -17,26 +29,44 @@ document.addEventListener('cut', function(e) {
 });
 
 // Convertir a minúsculas
-document.getElementById('username').addEventListener('input', function(e) {
-    e.target.value = e.target.value.toLowerCase();
-});
+var usernameInput = document.getElementById('username');
+var passwordInput = document.getElementById('password');
 
-document.getElementById('password').addEventListener('input', function(e) {
-    e.target.value = e.target.value.toLowerCase();
-});
+if (usernameInput) {
+    usernameInput.addEventListener('input', function(e) {
+        e.target.value = e.target.value.toLowerCase();
+    });
+}
 
-// Login
+if (passwordInput) {
+    passwordInput.addEventListener('input', function(e) {
+        e.target.value = e.target.value.toLowerCase();
+    });
+}
+
+// Login - USAR onclick en lugar de submit para evitar recarga
 document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    console.log('=== FORM SUBMIT DETECTADO ===');
+    
+    // PREVENIR RECARGA INMEDIATAMENTE
     e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('preventDefault ejecutado');
     
     var username = document.getElementById('username').value.trim();
     var password = document.getElementById('password').value;
     var errorDiv = document.getElementById('errorMessage');
     
-    errorDiv.textContent = '';
+    console.log('Usuario:', username);
+    console.log('Password:', password ? '********' : 'vacía');
+    
+    errorDiv.textContent = 'Conectando...';
+    errorDiv.style.color = '#666';
     
     try {
-        // Buscar en Supabase
+        console.log('Intentando consulta a Supabase...');
+        
         const { data: usuarios, error } = await supabase
             .from('usuarios')
             .select('*')
@@ -44,15 +74,23 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             .eq('password', password)
             .eq('status', 'active');
         
+        console.log('Respuesta:', usuarios, error);
+        
         if (error) {
-            errorDiv.textContent = 'Error de conexión';
-            return;
+            console.error('Error Supabase:', error);
+            errorDiv.textContent = 'Error de conexión: ' + error.message;
+            errorDiv.style.color = '#e74c3c';
+            return false;
         }
         
         if (!usuarios || usuarios.length === 0) {
+            console.log('Usuario no encontrado');
             errorDiv.textContent = 'Usuario o contraseña incorrectos';
-            return;
+            errorDiv.style.color = '#e74c3c';
+            return false;
         }
+        
+        console.log('Usuario encontrado:', usuarios[0].usuario);
         
         var encontrado = usuarios[0];
         
@@ -71,11 +109,25 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         };
         
         localStorage.setItem('sesionActiva', JSON.stringify(sesion));
+        console.log('Sesión guardada');
         
-        // Redirigir
-        window.location.href = 'panel.html';
+        errorDiv.textContent = '¡Bienvenido! Redirigiendo...';
+        errorDiv.style.color = 'green';
+        
+        // Redirigir después de 500ms
+        setTimeout(function() {
+            console.log('Redirigiendo a panel.html');
+            window.location.href = 'panel.html';
+        }, 500);
         
     } catch (err) {
-        errorDiv.textContent = 'Error inesperado';
+        console.error('Error catch:', err);
+        errorDiv.textContent = 'Error: ' + err.message;
+        errorDiv.style.color = '#e74c3c';
     }
+    
+    return false;
 });
+
+console.log('=== LOGIN.JS LISTO ===');
+
