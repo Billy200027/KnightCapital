@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuadros App - Cuentas para Pagar</title>
+    <link rel="stylesheet" href="panel.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        .banco-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            border-left: 5px solid #722F37;
+            transition: all 0.3s ease;
+        }
+        
+        .banco-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.12);
+        }
+        
+        .banco-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .banco-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #722F37 0%, #8B3A44 100%);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: white;
+        }
+        
+        .banco-title h3 {
+            color: #2d3748;
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+        }
+        
+        .banco-title span {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .banco-details {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-row span {
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        .detail-row strong {
+            color: #2d3748;
+            font-weight: 600;
+            font-family: monospace;
+            font-size: 1.1rem;
+        }
+        
+        .copy-btn {
+            background: #722F37;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .copy-btn:hover {
+            background: #8B3A44;
+            transform: translateY(-2px);
+        }
+        
+        .copy-btn.copied {
+            background: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="menu-overlay" id="menuOverlay"></div>
+    
+    <button class="menu-toggle" id="menuToggle">☰</button>
+    
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-mini">
+                <div class="mini-square"></div>
+                <div class="mini-square"></div>
+                <div class="minimini-square"></div>
+                <div class="mini-square"></div>
+            </div>
+            <h3>Menú Principal</h3>
+        </div>
+        
+        <ul class="nav-links">
+            <li><a href="panel.html">📊 Panel</a></li>
+            <li class="admin-only"><a href="admin.html">👥 Administración</a></li>
+            <li><a href="#" class="active">🏦 Cuentas para Pagar</a></li>
+        </ul>
+        
+        <div class="user-info">
+            <span id="nombreUsuario"></span>
+            <small id="rolUsuario"></small>
+        </div>
+        
+        <button class="btn-logout" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
+    </nav>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1>Cuentas para Depósitos</h1>
+            <p>Realiza tus pagos semanales en cualquiera de estas cuentas</p>
+        </header>
+        
+        <section class="section">
+            <h2>🏦 Cuentas Bancarias Disponibles</h2>
+            <div id="listaBancos">
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Configuración Supabase
+        const SUPABASE_URL = 'https://ulylpdeutafjuuevdllz.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_rygFKvTzyxTvn9SfTHcYdA_tEeS6OTH';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        var usuarioActual = null;
+        var esAdmin = false;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            verificarSesion();
+            configurarInterfaz();
+            mostrarBancos();
+        });
+        
+        function verificarSesion() {
+            var sesion = JSON.parse(localStorage.getItem('sesionActiva'));
+            if (!sesion) {
+                window.location.href = 'login.html';
+                return;
+            }
+            usuarioActual = sesion;
+            esAdmin = (sesion.rol === 'admin');
+        }
+        
+        function configurarInterfaz() {
+            document.getElementById('nombreUsuario').textContent = usuarioActual.usuario;
+            document.getElementById('rolUsuario').textContent = esAdmin ? 'Administrador' : 'Usuario';
+            
+            if (esAdmin) {
+                var adminElements = document.querySelectorAll('.admin-only');
+                for (var i = 0; i < adminElements.length; i++) {
+                    adminElements[i].style.display = 'block';
+                }
+            }
+            
+            var menuToggle = document.getElementById('menuToggle');
+            var sidebar = document.getElementById('sidebar');
+            var overlay = document.getElementById('menuOverlay');
+            
+            menuToggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('active');
+            });
+            
+            overlay.addEventListener('click', function() {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+            });
+        }
+        
+        async function mostrarBancos() {
+            var contenedor = document.getElementById('listaBancos');
+            
+            try {
+                const { data: cuentas, error } = await supabase
+                    .from('cuentas_bancarias')
+                    .select('*')
+                    .order('fecha_registro', { ascending: false });
+                
+                if (error) {
+                    contenedor.innerHTML = '<p class="empty">Error cargando cuentas</p>';
+                    return;
+                }
+                
+                if (!cuentas || cuentas.length === 0) {
+                    contenedor.innerHTML = '<p class="empty">No hay cuentas bancarias registradas aún.</p>';
+                    return;
+                }
+                
+                contenedor.innerHTML = '';
+                
+                for (var i = 0; i < cuentas.length; i++) {
+                    var c = cuentas[i];
+                    var div = document.createElement('div');
+                    div.className = 'banco-card';
+                    
+                    div.innerHTML = 
+                        '<div class="banco-header">' +
+                        '<div class="banco-icon">🏦</div>' +
+                        '<div class="banco-title">' +
+                        '<h3>' + c.banco + '</h3>' +
+                        '<span>Cuenta de ' + c.tipo + '</span>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="banco-details">' +
+                        '<div class="detail-row">' +
+                        '<span>Número de cuenta:</span>' +
+                        '<strong id="numero-' + i + '">' + c.numero + '</strong>' +
+                        '</div>' +
+                        '<div class="detail-row">' +
+                        '<span>Titular:</span>' +
+                        '<strong>' + c.titular + '</strong>' +
+                        '</div>' +
+                        '</div>' +
+                        '<button class="copy-btn" onclick="copiarNumero(\'' + c.numero + '\', this)">' +
+                        '📋 Copiar número de cuenta' +
+                        '</button>';
+                    
+                    contenedor.appendChild(div);
+                }
+                
+            } catch (err) {
+                console.error('Error:', err);
+                contenedor.innerHTML = '<p class="empty">Error de conexión</p>';
+            }
+        }
+        
+        function copiarNumero(numero, btn) {
+            var temp = document.createElement('textarea');
+            temp.value = numero;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            
+            var originalText = btn.innerHTML;
+            btn.innerHTML = '✅ ¡Copiado!';
+            btn.classList.add('copied');
+            
+            setTimeout(function() {
+                btn.innerHTML = originalText;
+                btn.classList.remove('copied');
+            }, 2000);
+        }
+        
+        function cerrarSesion() {
+            localStorage.removeItem('sesionActiva');
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>

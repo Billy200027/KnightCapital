@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuadros App - Panel</title>
+    <link rel="stylesheet" href="panel.css">
+    <!-- SUPABASE CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+    <div class="menu-overlay" id="menuOverlay"></div>
+    
+    <button class="menu-toggle" id="menuToggle">☰</button>
+    
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-mini">
+                <div class="mini-square"></div>
+                <div class="mini-square"></div>
+                <div class="mini-square"></div>
+                <div class="mini-square"></div>
+            </div>
+            <h3>Menú Principal</h3>
+        </div>
+        
+        <ul class="nav-links">
+            <li><a href="#" class="active">📊 Panel</a></li>
+            <li class="admin-only"><a href="admin.html">👥 Administración</a></li>
+            <li class="admin-only"><a href="#" onclick="mostrarCrearCuadro(); return false;">➕ Crear Cuadro</a></li>
+            <li><a href="bancos.html">🏦 Cuentas para Pagar</a></li>
+        </ul>
+        
+        <div class="user-info">
+            <span id="nombreUsuario"></span>
+            <small id="rolUsuario"></small>
+        </div>
+        
+        <button class="btn-logout" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
+    </nav>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1>Panel de Control</h1>
+            <p id="fechaActual"></p>
+        </header>
+        
+        <section class="section">
+            <h2>Cuadros Disponibles</h2>
+            <div id="listaCuadros" class="cuadros-grid">
+            </div>
+        </section>
+    </main>
+
+    <div id="modalCuadro" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="cerrarModal()">&times;</span>
+            <h3>Crear Nuevo Cuadro</h3>
+            
+            <form id="formCuadro">
+                <div class="form-group">
+                    <label>Nombre del Cuadro</label>
+                    <input type="text" id="nombreCuadro" required placeholder="Ej: Cuadro Navidad 2024">
+                </div>
+                
+                <div class="form-group">
+                    <label>Número de Semanas (5-25)</label>
+                    <input type="number" id="numSemanas" min="5" max="25" value="10" required>
+                    <small>Este número define las semanas y los participantes del cuadro</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Monto Semanal ($5-25)</label>
+                    <input type="number" id="montoSemanal" min="5" max="25" value="10" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Números Bloqueados (separados por coma)</label>
+                    <input type="text" id="numerosBloqueados" placeholder="Ej: 1, 2, 3, 13">
+                    <small>Estos números NO serán asignados a nadie</small>
+                </div>
+                
+                <button type="submit" class="btn-primary">Crear Cuadro</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modalNumero" class="modal">
+        <div class="modal-content center">
+            <div class="success-icon">🎉</div>
+            <h2>¡Bienvenido al Cuadro!</h2>
+            <div class="numero-display">
+                <p>Tu número asignado es:</p>
+                <span id="numeroAsignado" class="numero-grande"></span>
+                <div class="numero-info">
+                    <p>Este número es tuyo hasta que termine el cuadro</p>
+                    <p class="advertencia">⚠️ Guárdalo bien, es único e intransferible</p>
+                </div>
+            </div>
+            <button onclick="cerrarModalNumero()" class="btn-primary">Entendido</button>
+        </div>
+    </div>
+
+    <script src="panel.js"></script>
+</body>
+</html>

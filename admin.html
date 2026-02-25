@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuadros App - Administración</title>
+    <link rel="stylesheet" href="admin.css">
+    <!-- SUPABASE CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+    <div class="menu-overlay" id="menuOverlay"></div>
+    <button class="menu-toggle" id="menuToggle">☰</button>
+    
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>Panel Admin</h3>
+        </div>
+        
+        <ul class="nav-links">
+            <li><a href="panel.html">📊 Panel</a></li>
+            <li><a href="#" class="active">👥 Usuarios</a></li>
+            <li><a href="bancos.html">🏦 Cuentas para Pagar</a></li>
+        </ul>
+        
+        <div class="user-info">
+            <span id="nombreUsuario">Admin</span>
+            <small>Administrador</small>
+        </div>
+        
+        <button class="btn-logout" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
+    </nav>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1>Administración</h1>
+        </header>
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="mostrarTab('usuarios')">👥 Usuarios</button>
+            <button class="tab-btn" onclick="mostrarTab('bancos')">🏦 Cuentas Bancarias</button>
+        </div>
+        
+        <section id="tab-usuarios" class="tab-content active">
+            <div class="admin-grid">
+                <div class="admin-card">
+                    <h3>Crear Nuevo Usuario</h3>
+                    <form id="formUsuario">
+                        <div class="form-group">
+                            <label>Nombre de Usuario</label>
+                            <input type="text" id="newUsername" required placeholder="ej: juanperez">
+                            <small>Solo minúsculas, sin espacios</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Contraseña</label>
+                            <input type="password" id="newPassword" required placeholder="Mínimo 4 caracteres">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Rol</label>
+                            <select id="newRol">
+                                <option value="usuario">Usuario Normal</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn-primary">Crear Usuario</button>
+                    </form>
+                </div>
+                
+                <div class="admin-card wide">
+                    <h3>Usuarios Registrados</h3>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Rol</th>
+                                    <th>Estado</th>
+                                    <th>Último Acceso</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaUsuarios">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="tab-bancos" class="tab-content">
+            <div class="admin-grid">
+                <div class="admin-card">
+                    <h3>Registrar Cuenta Bancaria</h3>
+                    <form id="formBanco">
+                        <div class="form-group">
+                            <label>Nombre del Banco</label>
+                            <input type="text" id="bankNombre" required placeholder="Ej: Banco Pichincha">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Número de Cuenta</label>
+                            <input type="text" id="bankNumero" required placeholder="Ej: 1234567890">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Titular de la Cuenta</label>
+                            <input type="text" id="bankTitular" required placeholder="Nombre completo">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Tipo de Cuenta</label>
+                            <select id="bankTipo">
+                                <option value="ahorro">Ahorros</option>
+                                <option value="corriente">Corriente</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn-primary">Registrar Cuenta</button>
+                    </form>
+                </div>
+                
+                <div class="admin-card wide">
+                    <h3>Cuentas Disponibles para Depósitos</h3>
+                    <div id="listaCuentas" class="accounts-list">
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="admin.js"></script>
+</body>
+</html>

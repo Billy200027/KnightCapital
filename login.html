@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuadros App - Login</title>
+    <link rel="stylesheet" href="login.css">
+    <!-- SUPABASE CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="mini-logo">
+                    <div class="mini-square"></div>
+                    <div class="mini-square"></div>
+                    <div class="mini-square"></div>
+                    <div class="mini-square"></div>
+                </div>
+                <h2>Iniciar Sesión</h2>
+            </div>
+            
+            <p class="welcome-text">
+                Bienvenido a Cuadros App, gestiona tus cuadros y usuarios de manera segura.
+            </p>
+            
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="username">Usuario</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        required 
+                        autocomplete="off"
+                        placeholder="Ingresa tu usuario"
+                    >
+                </div>
+                
+                <div class="input-group">
+                    <label for="password">Contraseña</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        required 
+                        placeholder="Ingresa tu contraseña"
+                    >
+                </div>
+                
+                <div id="errorMessage" class="error-message"></div>
+                
+                <button type="submit" class="btn-login">
+                    Ingresar
+                </button>
+            </form>
+            
+            <div class="support-info">
+                <p>¿Problemas para acceder?</p>
+                <p class="phone">📞 0978-93-3789</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="login.js"></script>
+</body>
+</html>

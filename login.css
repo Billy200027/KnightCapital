@@ -1,0 +1,140 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+}
+
+.login-card {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 10px 40px rgba(114, 47, 55, 0.15);
+    border: 1px solid rgba(114, 47, 55, 0.1);
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.mini-logo {
+    display: grid;
+    grid-template-columns: repeat(2, 25px);
+    grid-template-rows: repeat(2, 25px);
+    gap: 4px;
+    margin: 0 auto 15px;
+    width: fit-content;
+}
+
+.mini-square {
+    background: #722F37;
+    border-radius: 4px;
+}
+
+.login-header h2 {
+    color: #722F37;
+    font-size: 1.8rem;
+    font-weight: 600;
+}
+
+.welcome-text {
+    color: #666;
+    text-align: center;
+    margin-bottom: 30px;
+    line-height: 1.5;
+    font-size: 0.95rem;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    color: #333;
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #722F37;
+    box-shadow: 0 0 0 3px rgba(114, 47, 55, 0.1);
+}
+
+.error-message {
+    color: #e74c3c;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+    min-height: 20px;
+    text-align: center;
+}
+
+.btn-login {
+    width: 100%;
+    padding: 14px;
+    background: #722F37;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-login:hover {
+    background: #8B3A44;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(114, 47, 55, 0.3);
+}
+
+.btn-login:active {
+    transform: translateY(0);
+}
+
+.support-info {
+    margin-top: 30px;
+    text-align: center;
+    color: #888;
+    font-size: 0.85rem;
+}
+
+.support-info .phone {
+    color: #722F37;
+    font-weight: 600;
+    margin-top: 5px;
+    font-size: 1rem;
+}
+
+
