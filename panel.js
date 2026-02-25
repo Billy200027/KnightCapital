@@ -67,7 +67,6 @@ async function mostrarCuadros() {
             .select('*');
         
         if (error) {
-            console.error('Error:', error);
             contenedor.innerHTML = '<p class="empty">Error cargando cuadros</p>';
             return;
         }
@@ -78,19 +77,14 @@ async function mostrarCuadros() {
             return;
         }
         
-        // Obtener participantes
         const { data: participantes, error: errPart } = await supabase
             .from('participantes')
             .select('*');
-        
-        if (errPart) console.error('Error participantes:', errPart);
         
         contenedor.innerHTML = '';
         
         for (var i = 0; i < cuadros.length; i++) {
             var cuadro = cuadros[i];
-            
-            // Asignar participantes
             cuadro.participantes = [];
             for (var j = 0; j < (participantes || []).length; j++) {
                 if (participantes[j].cuadro_id === cuadro.id) {
@@ -115,7 +109,6 @@ async function mostrarCuadros() {
         }
         
     } catch (err) {
-        console.error('Error:', err);
         contenedor.innerHTML = '<p class="empty">Error de conexión</p>';
     }
 }
@@ -188,7 +181,7 @@ async function completarCuadroAutomaticamente(cuadro) {
             };
             
             await supabase.from('participantes').insert([nuevoParticipante]);
-            cuadro.participantes.push(nuevoParticipanteante);
+            cuadro.participantes.push(nuevoParticipante);
         }
     }
 }
@@ -303,7 +296,6 @@ async function unirseACuadro(cuadroId) {
             return;
         }
         
-        // Verificar si ya participa
         const { data: existentes, error: errExistentes } = await supabase
             .from('participantes')
             .select('*')
@@ -317,7 +309,6 @@ async function unirseACuadro(cuadroId) {
             return;
         }
         
-        // Obtener participantes actuales
         const { data: participantes, error: errPart } = await supabase
             .from('participantes')
             .select('*')
@@ -334,7 +325,6 @@ async function unirseACuadro(cuadroId) {
             return;
         }
         
-        // Insertar participante
         const { error: errInsert } = await supabase
             .from('participantes')
             .insert([{
@@ -354,7 +344,6 @@ async function unirseACuadro(cuadroId) {
         mostrarCuadros();
         
     } catch (err) {
-        console.error('Error:', err);
         alert('Error de conexión');
     }
 }
@@ -460,7 +449,6 @@ document.getElementById('formCuadro').addEventListener('submit', async function(
         alert('Cuadro creado exitosamente.');
         
     } catch (err) {
-        console.error('Error:', err);
         alert('Error de conexión');
     }
 });
@@ -510,7 +498,6 @@ async function verDetallesCuadro(cuadroId) {
         alert(mensaje);
         
     } catch (err) {
-        console.error('Error:', err);
         alert('Error cargando detalles');
     }
 }
