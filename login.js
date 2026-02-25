@@ -1,6 +1,5 @@
-// login.js - VERSIÓN SUPABASE COMPLETA
+// login.js - VERSIÓN SUPABASE FUNCIONAL
 
-// Configurar Supabase
 const SUPABASE_URL = 'https://ulylpdeutafjuuevdllz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_rygFKvTzyxTvn9SfTHcYdA_tEeS6OTH';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -29,14 +28,13 @@ document.getElementById('password').addEventListener('input', function(e) {
 document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
-    var usernameInput = document.getElementById('username');
-    var passwordInput = document.getElementById('password');
+    var username = document.getElementById('username').value.trim();
+    var password = document.getElementById('password').value;
     var errorDiv = document.getElementById('errorMessage');
     
-    var username = usernameInput.value.trim();
-    var password = passwordInput.value;
-    
     errorDiv.textContent = '';
+    
+    console.log('Intentando login con:', username);
     
     try {
         // Buscar en Supabase
@@ -47,9 +45,11 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             .eq('password', password)
             .eq('status', 'active');
         
+        console.log('Respuesta:', usuarios, error);
+        
         if (error) {
-            console.error('Error Supabase:', error);
             errorDiv.textContent = 'Error de conexión con el servidor';
+            console.error('Error Supabase:', error);
             return;
         }
         
@@ -76,13 +76,11 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         
         localStorage.setItem('sesionActiva', JSON.stringify(sesion));
         
-        // Redirigir
+        console.log('Login exitoso, redirigiendo...');
         window.location.href = 'panel.html';
         
     } catch (err) {
         console.error('Error:', err);
-        errorDiv.textContent = 'Error inesperado. Intenta de nuevo.';
+        errorDiv.textContent = 'Error inesperado. Revisa la consola (F12)';
     }
 });
-
-
