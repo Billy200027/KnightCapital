@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuadros App - Super Admin</title>
+    <link rel="stylesheet" href="panel.css">
+    <link rel="stylesheet" href="superadmin.css">
+    <script src="sheets-db.js"></script>
+
+</head>
+<body>
+    <div class="menu-overlay" id="menuOverlay"></div>
+    
+    <button class="menu-toggle" id="menuToggle">☰</button>
+    
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-mini">
+                <div class="mini-square"></div>
+                <div class="mini-square"></div>
+                <div class="mini-square"></div>
+                <div class="mini-square"></div>
+            </div>
+            <h3>Super Admin</h3>
+        </div>
+        
+        <ul class="nav-links">
+            <li><a href="#" class="active">⚙️ Control Global</a></li>
+            <li><a href="#" onclick="verDatosSistema(); return false;">📊 Ver Datos del Sistema</a></li>
+        </ul>
+        
+        <div class="user-info">
+            <span id="nombreUsuario">Super Admin</span>
+            <small>Control Total</small>
+        </div>
+        
+        <button class="btn-logout" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
+    </nav>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1>⚙️ Control del Sistema</h1>
+            <p>Gestión global de Cuadros App</p>
+        </header>
+        
+        <div class="superadmin-grid">
+            <!-- Control Principal -->
+            <section class="control-card critical">
+                <h3>🚨 Estado Global del Sistema</h3>
+                
+                <div class="estado-actual" id="estadoActualDisplay">
+                    <span class="indicator activo">●</span>
+                    <span class="texto">SISTEMA ACTIVO</span>
+                </div>
+                
+                <p class="descripcion">
+                    Cuando el sistema está <strong>SUSPENDIDO</strong>, nadie puede iniciar sesión excepto el Super Admin.
+                </p>
+                
+                <div class="toggle-container">
+                    <label class="switch">
+                        <input type="checkbox" id="toggleEstado" checked onchange="cambiarEstadoGlobal()">
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="toggle-label" id="toggleLabel">Sistema Activo</span>
+                </div>
+                
+                <div class="info-ultimo-cambio" id="infoUltimoCambio">
+                    Último cambio: -
+                </div>
+            </section>
+            
+            <!-- Resumen del Sistema -->
+            <section class="control-card">
+                <h3>📊 Resumen del Sistema</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-number" id="statUsuarios">0</span>
+                        <span class="stat-label">Usuarios</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="statCuadros">0</span>
+                        <span class="stat-label">Cuadros</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="statActivos">0</span>
+                        <span class="stat-label">Cuadros Activos</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="statComprobantes">0</span>
+                        <span class="stat-label">Comprobantes Pendientes</span>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Lista de Usuarios (Solo Vista) -->
+            <section class="control-card wide">
+                <h3>👥 Todos los Usuarios (Vista Solo Lectura)</h3>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Usuario</th>
+                                <th>Rol</th>
+                                <th>Estado</th>
+                                <th>Último Acceso</th>
+                                <th>Tiene Cuenta Bancaria</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaUsuariosSuper">
+                            <tr><td colspan="5" class="empty">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+            <!-- Lista de Cuadros (Solo Vista) -->
+            <section class="control-card wide">
+                <h3>🎯 Todos los Cuadros (Vista Solo Lectura)</h3>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Estado</th>
+                                <th>Semana Actual</th>
+                                <th>Participantes</th>
+                                <th>Monto Semanal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaCuadrosSuper">
+                            <tr><td colspan="5" class="empty">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal de datos del sistema -->
+    <div id="modalDatos" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close-btn" onclick="cerrarModalDatos()">&times;</span>
+            <h3>📋 Datos Completos del Sistema (JSON)</h3>
+            <textarea id="datosSistemaJSON" readonly style="width: 100%; height: 400px; font-family: monospace; font-size: 0.85rem;"></textarea>
+            <button onclick="copiarDatos()" class="btn-primary" style="margin-top: 15px;">📋 Copiar al Portapapeles</button>
+        </div>
+    </div>
+
+    <script src="superadmin.js"></script>
+</body>
+</html>

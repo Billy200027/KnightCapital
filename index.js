@@ -1,7 +1,5 @@
-// index.js - VERSIÓN CORREGIDA
-// LÓGICA DE LA PANTALLA DE BIENVENIDA
+// index.js - VERSIÓN CON SUPERADMIN Y CONFIGURACIÓN GLOBAL
 
-// Prevenir copiar
 document.addEventListener('copy', function(e) {
     e.preventDefault();
     return false;
@@ -12,29 +10,36 @@ document.addEventListener('cut', function(e) {
     return false;
 });
 
-// Función principal que se ejecuta al cargar
 function iniciar() {
-    console.log('=== INICIANDO CUADROS APP ===');
+    console.log('=== INICIANDO CUADROS APP v2.0 ===');
     
-    // PASO 1: Inicializar datos SOLO si no existen (NO limpiar nunca)
     inicializarDatos();
     
-    // PASO 2: Esperar 2 segundos y redirigir
     setTimeout(function() {
         console.log('Redirigiendo a login...');
         window.location.href = 'login.html';
     }, 2000);
 }
 
-// Inicializar datos solo si no existen
 function inicializarDatos() {
-    // Verificar si ya existen usuarios
     var usuarios = localStorage.getItem('usuarios');
     
     if (!usuarios) {
         console.log('Inicializando datos por primera vez...');
         
-        // Crear usuario admin obligatorio
+        // SUPERADMIN único
+        var superadmin = {
+            id: 'superadmin001',
+            usuario: 'superadmin',
+            password: 'super.2024',
+            rol: 'superadmin',
+            cuentaBancaria: null,
+            status: 'active',
+            fechaRegistro: new Date().toISOString(),
+            ultimoAcceso: null
+        };
+        
+        // Admin normal
         var admin = {
             id: 'admin001',
             usuario: 'administrador',
@@ -46,20 +51,27 @@ function inicializarDatos() {
             ultimoAcceso: null
         };
         
-        // Guardar en localStorage
-        localStorage.setItem('usuarios', JSON.stringify([admin]));
+        // Configuración global del sistema
+        var configuracion = {
+            estado_global: 'activo',
+            ultimaModificacion: new Date().toISOString(),
+            modificadoPor: 'sistema'
+        };
+        
+        localStorage.setItem('usuarios', JSON.stringify([superadmin, admin]));
         localStorage.setItem('cuadros', JSON.stringify([]));
         localStorage.setItem('penalizaciones', JSON.stringify([]));
         localStorage.setItem('cuentasBancarias', JSON.stringify([]));
+        localStorage.setItem('notificaciones', JSON.stringify([]));
+        localStorage.setItem('configuracion', JSON.stringify(configuracion));
         localStorage.setItem('sesionActiva', JSON.stringify(null));
         
-        console.log('Datos inicializados correctamente');
+        console.log('Datos inicializados: Superadmin + Admin creados');
     } else {
         console.log('Datos ya existen, conservando...');
     }
 }
 
-// Ejecutar inmediatamente
 iniciar();
 
 

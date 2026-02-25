@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuadros App - Mi Perfil</title>
+    <link rel="stylesheet" href="panel.css">
+    <link rel="stylesheet" href="perfil.css">
+    <script src="sheets-db.js"></script>
+
+</head>
+<body>
+    <div class="menu-overlay" id="menuOverlay"></div>
+    
+    <button class="menu-toggle" id="menuToggle">☰</button>
+    
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-mini">
+                <div class="mini-square"></div>
+                <div class="mini-square"></div>
+                <div class="mini-square"></div>
+                <div class="mini-square"></div>
+            </div>
+            <h3>Menú Principal</h3>
+        </div>
+        
+        <ul class="nav-links">
+            <li><a href="panel.html">📊 Panel</a></li>
+            <li class="admin-only"><a href="admin.html">👥 Administración</a></li>
+            <li class="admin-only"><a href="#" onclick="mostrarCrearCuadro(); return false;">➕ Crear Cuadro</a></li>
+            <li><a href="#" class="active">👤 Mi Perfil</a></li>
+            <li><a href="comprobantes.html">📤 Subir Comprobante</a></li>
+            <li><a href="bancos.html">🏦 Cuentas para Pagar</a></li>
+        </ul>
+        
+        <div class="user-info">
+            <span id="nombreUsuario"></span>
+            <small id="rolUsuario"></small>
+        </div>
+        
+        <button class="btn-logout" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
+    </nav>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1>Mi Perfil</h1>
+            <p>Gestiona tus datos y cuenta bancaria</p>
+        </header>
+        
+        <div class="perfil-grid">
+            <!-- Datos Personales -->
+            <section class="perfil-card">
+                <h3>👤 Datos Personales</h3>
+                <div class="info-list">
+                    <div class="info-item">
+                        <span>Usuario:</span>
+                        <strong id="infoUsuario">-</strong>
+                    </div>
+                    <div class="info-item">
+                        <span>Rol:</span>
+                        <strong id="infoRol">-</strong>
+                    </div>
+                    <div class="info-item">
+                        <span>Miembro desde:</span>
+                        <strong id="infoFecha">-</strong>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Cambiar Contraseña -->
+            <section class="perfil-card">
+                <h3>🔒 Cambiar Contraseña</h3>
+                <form id="formPassword">
+                    <div class="form-group">
+                        <label>Contraseña Actual</label>
+                        <input type="password" id="passActual" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nueva Contraseña</label>
+                        <input type="password" id="passNueva" required minlength="4">
+                    </div>
+                    <div class="form-group">
+                        <label>Confirmar Nueva Contraseña</label>
+                        <input type="password" id="passConfirmar" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Actualizar Contraseña</button>
+                </form>
+            </section>
+            
+            <!-- Mi Cuenta Bancaria -->
+            <section class="perfil-card wide">
+                <h3>🏦 Mi Cuenta Bancaria (Para recibir pagos)</h3>
+                <div id="miCuentaBancaria">
+                    <form id="formMiBanco">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Banco</label>
+                                <input type="text" id="miBanco" required placeholder="Ej: Banco Pichincha">
+                            </div>
+                            <div class="form-group">
+                                <label>Número de Cuenta</label>
+                                <input type="text" id="miNumeroCuenta" required placeholder="Ej: 1234567890">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Tipo de Cuenta</label>
+                                <select id="miTipoCuenta">
+                                    <option value="ahorro">Ahorros</option>
+                                    <option value="corriente">Corriente</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Titular de la Cuenta</label>
+                                <input type="text" id="miTitular" required placeholder="Nombre completo del titular">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary">Guardar Mi Cuenta Bancaria</button>
+                    </form>
+                </div>
+            </section>
+            
+            <!-- Cuentas del Admin (para pagar) -->
+            <section class="perfil-card wide">
+                <h3>🏦 Cuentas del Administrador (Para realizar tus pagos)</h3>
+                <div id="cuentasAdmin" class="accounts-list">
+                    <p class="empty">Cargando cuentas...</p>
+                </div>
+            </section>
+            
+            <!-- Notificaciones -->
+            <section class="perfil-card wide">
+                <h3>🔔 Notificaciones <span id="contadorNotif" class="badge-count">0</span></h3>
+                <div id="listaNotificaciones" class="notificaciones-list">
+                    <p class="empty">No tienes notificaciones</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="perfil.js"></script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuadros App - Subir Comprobantes</title>
+    <link rel="stylesheet" href="panel.css">
+    <link rel="stylesheet" href="comprobantes.css">
+    <script src="sheets-db.js"></script>
+
+</head>
+<body>
+    <div class="menu-overlay" id="menuOverlay"></div>
+    
+    <button class="menu-toggle" id="menuToggle">☰</button>
+    
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-mini">
+                <div class="mini-square"></div>
+                <div class="mini-square"></div>
+                <div class="mini-square"></div>
+                <div class="mini-square"></div>
+            </div>
+            <h3>Menú Principal</h3>
+        </div>
+        
+        <ul class="nav-links">
+            <li><a href="panel.html">📊 Panel</a></li>
+            <li class="admin-only"><a href="admin.html">👥 Administración</a></li>
+            <li class="admin-only"><a href="#" onclick="mostrarCrearCuadro(); return false;">➕ Crear Cuadro</a></li>
+            <li><a href="perfil.html">👤 Mi Perfil</a></li>
+            <li><a href="#" class="active">📤 Subir Comprobante</a></li>
+            <li><a href="bancos.html">🏦 Cuentas para Pagar</a></li>
+        </ul>
+        
+        <div class="user-info">
+            <span id="nombreUsuario"></span>
+            <small id="rolUsuario"></small>
+        </div>
+        
+        <button class="btn-logout" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
+    </nav>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1>Mis Comprobantes</h1>
+            <p>Sube tus comprobantes de pago semanales</p>
+        </header>
+        
+        <section class="section">
+            <h2>📋 Cuadros Activos - Semana Actual</h2>
+            <div id="listaCuadrosActivos" class="comprobantes-grid">
+                <p class="empty">Cargando tus cuadros...</p>
+            </div>
+        </section>
+        
+        <section class="section" style="margin-top: 40px;">
+            <h2>📜 Historial de Comprobantes</h2>
+            <div id="historialComprobantes" class="historial-list">
+                <p class="empty">No has subido comprobantes aún</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal para subir comprobante -->
+    <div id="modalComprobante" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="cerrarModalComp()">&times;</span>
+            <h3>📤 Subir Comprobante</h3>
+            
+            <div class="comprobante-info">
+                <p><strong>Cuadro:</strong> <span id="compCuadroNombre">-</span></p>
+                <p><strong>Semana:</strong> <span id="compSemana">-</span></p>
+                <p><strong>Monto a pagar:</strong> $<span id="compMonto">-</span></p>
+            </div>
+            
+            <form id="formComprobante">
+                <input type="hidden" id="compCuadroId">
+                <input type="hidden" id="compSemanaNum">
+                
+                <div class="form-group">
+                    <label>Seleccionar archivo (imagen o PDF)</label>
+                    <div class="file-upload">
+                        <input type="file" id="archivoComprobante" accept="image/*,.pdf" required>
+                        <div class="file-preview" id="filePreview">
+                            <span>📎 Arrastra o haz clic para seleccionar</span>
+                        </div>
+                    </div>
+                    <small>Máximo 5MB. Formatos: JPG, PNG, PDF</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Notas adicionales (opcional)</label>
+                    <textarea id="notasComprobante" rows="3" placeholder="Ej: Pago realizado el 20/02 por transferencia"></textarea>
+                </div>
+                
+                <div id="errorComprobante" class="error-message"></div>
+                
+                <button type="submit" class="btn-primary">Subir Comprobante</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="comprobantes.js"></script>
+</body>
+</html>

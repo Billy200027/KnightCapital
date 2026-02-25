@@ -1,7 +1,5 @@
-// login.js - VERSIÓN CORREGIDA
-// LÓGICA DEL LOGIN
+// login.js - VERSIÓN CON VALIDACIÓN DE ESTADO GLOBAL
 
-// Prevenir copiar
 document.addEventListener('copy', function(e) {
     e.preventDefault();
     return false;
@@ -12,7 +10,6 @@ document.addEventListener('cut', function(e) {
     return false;
 });
 
-// Convertir a minúsculas mientras escribe
 document.getElementById('username').addEventListener('input', function(e) {
     e.target.value = e.target.value.toLowerCase();
 });
@@ -21,7 +18,6 @@ document.getElementById('password').addEventListener('input', function(e) {
     e.target.value = e.target.value.toLowerCase();
 });
 
-// Al enviar el formulario
 document.getElementById('loginForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
@@ -32,14 +28,21 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
     var username = usernameInput.value.trim();
     var password = passwordInput.value;
     
-    // Limpiar error anterior
     errorDiv.textContent = '';
     
-    // OBTENER USUARIOS DE LOCALSTORAGE
-    var usuariosJSON = localStorage.getItem('usuarios');
+    // VERIFICAR CONFIGURACIÓN GLOBAL
+    var configJSON = localStorage.getItem('configuracion');
+    if (!configJSON) {
+        errorDiv.textContent = 'Error: Sistema no inicializado';
+        return;
+    }
     
+    var configuracion = JSON.parse(configJSON);
+    
+    // OBTENER USUARIOS
+    var usuariosJSON = localStorage.getItem('usuarios');
     if (!usuariosJSON) {
-        errorDiv.textContent = 'Error: Sistema no inicializado. Vuelve a index.html';
+        errorDiv.textContent = 'Error: Sistema no inicializado';
         return;
     }
     
@@ -47,24 +50,27 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
     
     // BUSCAR USUARIO
     var encontrado = null;
-    
     for (var i = 0; i < usuarios.length; i++) {
         var u = usuarios[i];
-        
         if (u.usuario === username && u.password === password) {
             encontrado = u;
             break;
         }
     }
     
-    // SI NO ENCONTRÓ
     if (!encontrado) {
         errorDiv.textContent = 'Usuario o contraseña incorrectos';
         return;
     }
     
-    // ÉXITO
-    // Actualizar último acceso
+    // VALIDAR ESTADO GLOBAL
+    // Solo superadmin puede entrar si está suspendido
+    if (configuracion.estado_global === 'suspendido' && encontrado.rol !== 'superadmin') {
+        errorDiv.textContent = '⛔ Sistema suspendido. Contacte al administrador.';
+        return;
+    }
+    
+    // ÉXITO - Actualizar último acceso
     encontrado.ultimoAcceso = new Date().toISOString();
     localStorage.setItem('usuarios', JSON.stringify(usuarios));
     
@@ -78,8 +84,12 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
     
     localStorage.setItem('sesionActiva', JSON.stringify(sesion));
     
-    // Redirigir
-    window.location.href = 'panel.html';
+    // Redirigir según rol
+    if (encontrado.rol === 'superadmin') {
+        window.location.href = 'superadmin.html';
+    } else {
+        window.location.href = 'panel.html';
+    }
 });
 
 

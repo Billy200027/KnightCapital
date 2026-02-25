@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Limpiar Sistema</title>
+    <script src="sheets-db.js"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: #722F37;
+            color: white;
+        }
+        .container {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+        }
+        button {
+            background: white;
+            color: #722F37;
+            border: none;
+            padding: 20px 40px;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        .success {
+            display: none;
+            color: #d4edda;
+            margin-top: 20px;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Limpiar Sistema Cuadros App</h1>
+        <p>Usa esto solo si tienes problemas con los datos</p>
+        <br>
+        <button onclick="limpiar()">🗑 LIMPIAR TODO</button>
+        <button onclick="irIndex()">🏠 Ir a Index</button>
+        <div id="success" class="success">✅ ¡Limpiado! Redirigiendo...</div>
+    </div>
+
+    <script>
+        function limpiar() {
+            localStorage.clear();
+            document.getElementById('success').style.display = 'block';
+            setTimeout(function() {
+                window.location.href = 'index.html';
+            }, 1500);
+        }
+        
+        function irIndex() {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

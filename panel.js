@@ -1,4 +1,4 @@
-// panel.js - VERSIÓN SIMPLIFICADA SIN PENALIZACIONES
+// panel.js - VERSIÓN CON NOTIFICACIONES Y COMPROBANTES
 var usuarioActual = null;
 var esAdmin = false;
 
@@ -6,7 +6,12 @@ document.addEventListener('DOMContentLoaded', function() {
     verificarSesion();
     configurarInterfaz();
     mostrarCuadros();
-    setInterval(mostrarCuadros, 60000);
+    limpiarNotificacionesViejas();
+    generarNotificacionesSemanales();
+    setInterval(function() {
+        mostrarCuadros();
+        limpiarNotificacionesViejas();
+    }, 60000);
     mostrarFecha();
 });
 
@@ -51,6 +56,84 @@ function mostrarFecha() {
     var opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     var fecha = new Date().toLocaleDateString('es-ES', opciones);
     document.getElementById('fechaActual').textContent = fecha;
+}
+
+// SISTEMA DE NOTIFICACIONES
+function limpiarNotificacionesViejas() {
+    var notificaciones = JSON.parse(localStorage.getItem('notificaciones')) || [];
+    var ahora = new Date();
+    
+    var filtradas = [];
+    for (var i = 0; i < notificaciones.length; i++) {
+        var fechaEliminar = new Date(notificaciones[i].autoEliminar);
+        if (fechaEliminar > ahora) {
+            filtradas.push(notificaciones[i]);
+        }
+    }
+    
+    localStorage.setItem('notificaciones', JSON.stringify(filtradas));
+}
+
+function generarNotificacionesSemanales() {
+    if (esAdmin) return; // Solo para usuarios normales
+    
+    var cuadros = JSON.parse(localStorage.getItem('cuadros')) || [];
+    var notificaciones = JSON.parse(localStorage.getItem('notificaciones')) || [];
+    var ahora = new Date();
+    
+    for (var i = 0; i < cuadros.length; i++) {
+        var cuadro = cuadros[i];
+        
+        // Buscar si el usuario está en este cuadro
+        var miParticipacion = null;
+        for (var j = 0; j < cuadro.participantes.length; j++) {
+            if (cuadro.participantes[j].userId === usuarioActual.id) {
+                miParticipacion = cuadro.participantes[j];
+                break;
+            }
+        }
+        
+        if (!miParticipacion || cuadro.estado !== 'activo') continue;
+        
+        // Verificar si ya existe notificación para esta semana
+        var semanaActual = cuadro.semanaActual || 1;
+        var yaExiste = false;
+        
+        for (var k = 0; k < notificaciones.length; k++) {
+            var n = notificaciones[k];
+            if (n.userId === usuarioActual.id && 
+                n.cuadroId === cuadro.id && 
+                n.semana === semanaActual &&
+                n.tipo === 'pago_requerido') {
+                yaExiste = true;
+                break;
+            }
+        }
+        
+        if (!yaExiste) {
+            // Calcular fecha de eliminación (14 días)
+            var fechaEliminar = new Date(ahora);
+            fechaEliminar.setDate(fechaEliminar.getDate() + 14);
+            
+            var notificacion = {
+                id: 'notif_' + Date.now() + '_' + i,
+                userId: usuarioActual.id,
+                tipo: 'pago_requerido',
+                mensaje: 'Semana ' + semanaActual + ' de ' + cuadro.nombre + ': Debes pagar $' + cuadro.montoSemanal,
+                cuadroId: cuadro.id,
+                cuadroNombre: cuadro.nombre,
+                semana: semanaActual,
+                monto: cuadro.montoSemanal,
+                fechaCreacion: ahora.toISOString(),
+                autoEliminar: fechaEliminar.toISOString(),
+                leida: false
+            };
+            
+            notificaciones.push(notificacion);
+        }
+    }
+    
+    localStorage.setItem('notificaciones', JSON.stringify(notificaciones));
 }
 
 function mostrarCuadros() {
@@ -99,7 +182,13 @@ function actualizarEstadoCuadro(cuadro) {
         var diffSemanas = Math.floor(diffTiempo / (1000 * 60 * 60 * 24 * 7));
         
         if (diffSemanas >= 0) {
+            var semanaAnterior = cuadro.semanaActual;
             cuadro.semanaActual = Math.min(diffSemanas + 1, cuadro.semanas);
+            
+            // Si cambió la semana, generar notificaciones nuevas
+            if (semanaAnterior !== cuadro.semanaActual) {
+                generarNotificacionesSemanales();
+            }
             
             if (cuadro.semanaActual > cuadro.semanas) {
                 cuadro.estado = 'completado';
@@ -218,6 +307,7 @@ function crearTarjetaCuadro(cuadro) {
     
     if (esAdmin) {
         html += '<button class="btn-secondary" onclick="verDetallesCuadro(\'' + cuadro.id + '\')">Ver Detalles</button>';
+        html += '<button class="btn-primary" onclick="verComprobantesCuadro(\'' + cuadro.id + '\')">Ver Comprobantes</button>';
     } else if (yaParticipa) {
         html += '<div class="mi-numero">Tu número: ' + miNumero + '</div>';
     } else if (cuadro.estado === 'abierto' && disponiblesParaUsuario > 0) {
@@ -363,6 +453,7 @@ document.getElementById('formCuadro').addEventListener('submit', function(e) {
         montoSemanal: monto,
         numerosBloqueados: bloqueados,
         participantes: [],
+        comprobantes: [], // NUEVO: Array de comprobantes
         estado: 'abierto',
         semanaActual: 0,
         fechaCreacion: new Date().toISOString(),
@@ -417,6 +508,12 @@ function verDetallesCuadro(cuadroId) {
     }
     
     alert(mensaje);
+}
+
+// NUEVO: Ver comprobantes del cuadro (redirige a admin con filtro)
+function verComprobantesCuadro(cuadroId) {
+    localStorage.setItem('cuadroFiltroComprobantes', cuadroId);
+    window.location.href = 'admin.html?tab=comprobantes';
 }
 
 

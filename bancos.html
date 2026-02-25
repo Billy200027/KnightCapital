@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cuadros App - Cuentas para Pagar</title>
     <link rel="stylesheet" href="panel.css">
+    <script src="sheets-db.js"></script>
+
     <style>
         .banco-card {
             background: white;
@@ -138,6 +140,8 @@
         <ul class="nav-links">
             <li><a href="panel.html">📊 Panel</a></li>
             <li class="admin-only"><a href="admin.html">👥 Administración</a></li>
+            <li><a href="perfil.html">👤 Mi Perfil</a></li>
+            <li><a href="comprobantes.html">📤 Subir Comprobante</a></li>
             <li><a href="#" class="active">🏦 Cuentas para Pagar</a></li>
         </ul>
         
@@ -215,15 +219,23 @@
             var cuentas = JSON.parse(localStorage.getItem('cuentasBancarias')) || [];
             var contenedor = document.getElementById('listaBancos');
             
-            if (cuentas.length === 0) {
+            // Filtrar solo activas
+            var activas = [];
+            for (var i = 0; i < cuentas.length; i++) {
+                if (cuentas[i].activa !== false) {
+                    activas.push(cuentas[i]);
+                }
+            }
+            
+            if (activas.length === 0) {
                 contenedor.innerHTML = '<p class="empty">No hay cuentas bancarias registradas aún.</p>';
                 return;
             }
             
             contenedor.innerHTML = '';
             
-            for (var i = 0; i < cuentas.length; i++) {
-                var c = cuentas[i];
+            for (var i = 0; i < activas.length; i++) {
+                var c = activas[i];
                 var div = document.createElement('div');
                 div.className = 'banco-card';
                 

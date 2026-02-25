@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cuadros App - Administración</title>
     <link rel="stylesheet" href="admin.css">
+    <script src="sheets-db.js"></script>
 </head>
 <body>
     <!-- Overlay para cerrar menú -->
@@ -23,6 +24,8 @@
             <li><a href="panel.html">📊 Panel</a></li>
             <li><a href="#" class="active">👥 Usuarios</a></li>
             <li><a href="bancos.html">🏦 Cuentas para Pagar</a></li>
+            <li><a href="perfil.html">👤 Mi Perfil</a></li>
+            <li><a href="comprobantes.html">📤 Subir Comprobante</a></li>
         </ul>
         
         <div class="user-info">
@@ -41,8 +44,9 @@
         
         <!-- Tabs para cambiar entre secciones -->
         <div class="tabs">
-            <button class="tab-btn active" onclick="mostrarTab('usuarios')">👥 Usuarios</button>
-            <button class="tab-btn" onclick="mostrarTab('bancos')">🏦 Cuentas Bancarias</button>
+            <button class="tab-btn active" onclick="mostrarTab('usuarios', this)">👥 Usuarios</button>
+            <button class="tab-btn" onclick="mostrarTab('bancos', this)">🏦 Cuentas Bancarias</button>
+            <button class="tab-btn" onclick="mostrarTab('comprobantes', this)">📋 Comprobantes</button>
         </div>
         
         <!-- TAB: Gestión de Usuarios -->
@@ -90,7 +94,7 @@
                                 </tr>
                             </thead>
                             <tbody id="tablaUsuarios">
-                                <!-- Se llena con JavaScript -->
+                                <tr><td colspan="5" class="empty">Cargando...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -136,15 +140,59 @@
                 <div class="admin-card wide">
                     <h3>Cuentas Disponibles para Depósitos</h3>
                     <div id="listaCuentas" class="accounts-list">
-                        <!-- Se llena con JavaScript -->
+                        <p class="empty">No hay cuentas registradas</p>
                     </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- TAB: Comprobantes -->
+        <section id="tab-comprobantes" class="tab-content">
+            <div class="admin-card wide">
+                <h3>📋 Comprobantes Pendientes de Confirmación</h3>
+                
+                <div class="filtro-cuadro">
+                    <label>Filtrar por Cuadro:</label>
+                    <select id="filtroCuadro" onchange="cargarComprobantes()">
+                        <option value="todos">Todos los cuadros</option>
+                    </select>
+                </div>
+                
+                <div id="listaComprobantes" class="comprobantes-admin-list">
+                    <p class="empty">No hay comprobantes pendientes</p>
                 </div>
             </div>
         </section>
     </main>
 
+    <!-- Modal para ver comprobante -->
+    <div id="modalVerComprobante" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <span class="close-btn" onclick="cerrarModalVer()">&times;</span>
+            <h3>📄 Detalle del Comprobante</h3>
+            
+            <div class="comp-detalle">
+                <p><strong>Usuario:</strong> <span id="detalleUsuario">-</span></p>
+                <p><strong>Cuadro:</strong> <span id="detalleCuadro">-</span></p>
+                <p><strong>Semana:</strong> <span id="detalleSemana">-</span></p>
+                <p><strong>Monto:</strong> $<span id="detalleMonto">-</span></p>
+                <p><strong>Fecha de subida:</strong> <span id="detalleFecha">-</span></p>
+                <p><strong>Notas:</strong> <span id="detalleNotas">-</span></p>
+            </div>
+            
+            <div class="comp-archivo" id="detalleArchivo"></div>
+            
+            <div class="comp-acciones" style="margin-top: 25px; display: flex; gap: 15px;">
+                <button onclick="confirmarComprobante()" class="btn-primary" style="flex: 1; background: #28a745;">
+                    ✓ Confirmar Pago
+                </button>
+                <button onclick="cerrarModalVer()" class="btn-secondary" style="flex: 1;">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="admin.js"></script>
 </body>
 </html>
-
-
