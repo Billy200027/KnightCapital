@@ -1,16 +1,16 @@
-// panel.js - VERSIÓN CON NOTIFICACIONES Y COMPROBANTES
+// panel.js - VERSIÓN GOOGLE SHEETS
+
 var usuarioActual = null;
 var esAdmin = false;
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     verificarSesion();
     configurarInterfaz();
+    await refreshCache(true);
     mostrarCuadros();
-    limpiarNotificacionesViejas();
-    generarNotificacionesSemanales();
-    setInterval(function() {
+    setInterval(async function() {
+        await refreshCache(true);
         mostrarCuadros();
-        limpiarNotificacionesViejas();
     }, 60000);
     mostrarFecha();
 });
@@ -22,7 +22,7 @@ function verificarSesion() {
         return;
     }
     usuarioActual = sesion;
-    esAdmin = (sesion.rol === 'admin');
+    esAdmin = (sesion.rol === 'admin' || sesion.rol === 'superadmin');
 }
 
 function configurarInterfaz() {
@@ -58,86 +58,8 @@ function mostrarFecha() {
     document.getElementById('fechaActual').textContent = fecha;
 }
 
-// SISTEMA DE NOTIFICACIONES
-function limpiarNotificacionesViejas() {
-    var notificaciones = JSON.parse(localStorage.getItem('notificaciones')) || [];
-    var ahora = new Date();
-    
-    var filtradas = [];
-    for (var i = 0; i < notificaciones.length; i++) {
-        var fechaEliminar = new Date(notificaciones[i].autoEliminar);
-        if (fechaEliminar > ahora) {
-            filtradas.push(notificaciones[i]);
-        }
-    }
-    
-    localStorage.setItem('notificaciones', JSON.stringify(filtradas));
-}
-
-function generarNotificacionesSemanales() {
-    if (esAdmin) return; // Solo para usuarios normales
-    
-    var cuadros = JSON.parse(localStorage.getItem('cuadros')) || [];
-    var notificaciones = JSON.parse(localStorage.getItem('notificaciones')) || [];
-    var ahora = new Date();
-    
-    for (var i = 0; i < cuadros.length; i++) {
-        var cuadro = cuadros[i];
-        
-        // Buscar si el usuario está en este cuadro
-        var miParticipacion = null;
-        for (var j = 0; j < cuadro.participantes.length; j++) {
-            if (cuadro.participantes[j].userId === usuarioActual.id) {
-                miParticipacion = cuadro.participantes[j];
-                break;
-            }
-        }
-        
-        if (!miParticipacion || cuadro.estado !== 'activo') continue;
-        
-        // Verificar si ya existe notificación para esta semana
-        var semanaActual = cuadro.semanaActual || 1;
-        var yaExiste = false;
-        
-        for (var k = 0; k < notificaciones.length; k++) {
-            var n = notificaciones[k];
-            if (n.userId === usuarioActual.id && 
-                n.cuadroId === cuadro.id && 
-                n.semana === semanaActual &&
-                n.tipo === 'pago_requerido') {
-                yaExiste = true;
-                break;
-            }
-        }
-        
-        if (!yaExiste) {
-            // Calcular fecha de eliminación (14 días)
-            var fechaEliminar = new Date(ahora);
-            fechaEliminar.setDate(fechaEliminar.getDate() + 14);
-            
-            var notificacion = {
-                id: 'notif_' + Date.now() + '_' + i,
-                userId: usuarioActual.id,
-                tipo: 'pago_requerido',
-                mensaje: 'Semana ' + semanaActual + ' de ' + cuadro.nombre + ': Debes pagar $' + cuadro.montoSemanal,
-                cuadroId: cuadro.id,
-                cuadroNombre: cuadro.nombre,
-                semana: semanaActual,
-                monto: cuadro.montoSemanal,
-                fechaCreacion: ahora.toISOString(),
-                autoEliminar: fechaEliminar.toISOString(),
-                leida: false
-            };
-            
-            notificaciones.push(notificacion);
-        }
-    }
-    
-    localStorage.setItem('notificaciones', JSON.stringify(notificaciones));
-}
-
 function mostrarCuadros() {
-    var cuadros = JSON.parse(localStorage.getItem('cuadros')) || [];
+    var cuadros = getCachedCuadros();
     var contenedor = document.getElementById('listaCuadros');
     
     if (cuadros.length === 0) {
@@ -149,13 +71,10 @@ function mostrarCuadros() {
     contenedor.innerHTML = '';
     
     for (var i = 0; i < cuadros.length; i++) {
-        var cuadro = cuadros[i];
-        cuadro = actualizarEstadoCuadro(cuadro);
+        var cuadro = actualizarEstadoCuadro(cuadros[i]);
         var tarjeta = crearTarjetaCuadro(cuadro);
         contenedor.appendChild(tarjeta);
     }
-    
-    localStorage.setItem('cuadros', JSON.stringify(cuadros));
 }
 
 function actualizarEstadoCuadro(cuadro) {
@@ -172,6 +91,11 @@ function actualizarEstadoCuadro(cuadro) {
     if (ahora > primerViernes && cuadro.estado === 'abierto') {
         cuadro.estado = 'cerrado';
         completarCuadroAutomaticamente(cuadro);
+        // Guardar en Sheets (async, no esperamos)
+        actualizarCuadroSheets(cuadro.id, {
+            estado: 'cerrado', 
+            participantes: cuadro.participantes
+        });
     }
     
     if (cuadro.estado === 'activo' || cuadro.estado === 'cerrado') {
@@ -182,13 +106,7 @@ function actualizarEstadoCuadro(cuadro) {
         var diffSemanas = Math.floor(diffTiempo / (1000 * 60 * 60 * 24 * 7));
         
         if (diffSemanas >= 0) {
-            var semanaAnterior = cuadro.semanaActual;
             cuadro.semanaActual = Math.min(diffSemanas + 1, cuadro.semanas);
-            
-            // Si cambió la semana, generar notificaciones nuevas
-            if (semanaAnterior !== cuadro.semanaActual) {
-                generarNotificacionesSemanales();
-            }
             
             if (cuadro.semanaActual > cuadro.semanas) {
                 cuadro.estado = 'completado';
@@ -227,7 +145,7 @@ function completarCuadroAutomaticamente(cuadro) {
 
 function encontrarNumeroDisponible(cuadro) {
     for (var num = 1; num <= cuadro.semanas; num++) {
-        if (cuadro.numerosBloqueados.indexOf(num) !== -1) continue;
+        if (cuadro.numerosBloqueados && cuadro.numerosBloqueados.indexOf(num) !== -1) continue;
         
         var ocupado = false;
         for (var j = 0; j < cuadro.participantes.length; j++) {
@@ -266,7 +184,7 @@ function crearTarjetaCuadro(cuadro) {
         }
     }
     
-    var ocupadosParaUsuario = participantesReales + cuadro.numerosBloqueados.length;
+    var ocupadosParaUsuario = participantesReales + (cuadro.numerosBloqueados ? cuadro.numerosBloqueados.length : 0);
     var disponiblesParaUsuario = cuadro.semanas - ocupadosParaUsuario;
     var progreso = (ocupadosParaUsuario / cuadro.semanas) * 100;
     
@@ -291,7 +209,7 @@ function crearTarjetaCuadro(cuadro) {
             }
         }
         if (tocaEstaSemana) {
-            html += '<div class="info-row"><span>Le toca el número:</span> <strong>#' + cuadro.semanaActual + '</strong></div>';
+            html += '<div class="info-row"><span>Le toca:</span> <strong>#' + cuadro.semanaActual + ' (' + tocaEstaSemana.username + ')</strong></div>';
         }
     }
     
@@ -307,7 +225,6 @@ function crearTarjetaCuadro(cuadro) {
     
     if (esAdmin) {
         html += '<button class="btn-secondary" onclick="verDetallesCuadro(\'' + cuadro.id + '\')">Ver Detalles</button>';
-        html += '<button class="btn-primary" onclick="verComprobantesCuadro(\'' + cuadro.id + '\')">Ver Comprobantes</button>';
     } else if (yaParticipa) {
         html += '<div class="mi-numero">Tu número: ' + miNumero + '</div>';
     } else if (cuadro.estado === 'abierto' && disponiblesParaUsuario > 0) {
@@ -322,23 +239,13 @@ function crearTarjetaCuadro(cuadro) {
     return div;
 }
 
-function unirseACuadro(cuadroId) {
+async function unirseACuadro(cuadroId) {
     if (esAdmin) {
         alert('El administrador no puede participar en cuadros.');
         return;
     }
     
-    var cuadros = JSON.parse(localStorage.getItem('cuadros')) || [];
-    var cuadro = null;
-    var index = -1;
-    
-    for (var i = 0; i < cuadros.length; i++) {
-        if (cuadros[i].id === cuadroId) {
-            cuadro = cuadros[i];
-            index = i;
-            break;
-        }
-    }
+    var cuadro = getCachedCuadros().find(function(c) { return c.id === cuadroId; });
     
     if (!cuadro || cuadro.estado !== 'abierto') {
         alert('Este cuadro ya no está disponible.');
@@ -359,18 +266,21 @@ function unirseACuadro(cuadroId) {
         return;
     }
     
-    cuadro.participantes.push({
-        userId: usuarioActual.id,
-        username: usuarioActual.usuario,
-        numero: numeroAsignado,
-        esSistema: false,
-        fechaIngreso: new Date().toISOString()
-    });
+    // LLAMADA A SHEETS
+    var result = await unirseCuadroSheets(
+        usuarioActual.id, 
+        cuadroId, 
+        numeroAsignado,
+        usuarioActual.usuario
+    );
     
-    cuadros[index] = cuadro;
-    localStorage.setItem('cuadros', JSON.stringify(cuadros));
+    if (!result.success) {
+        alert(result.error || 'Error al unirse al cuadro');
+        return;
+    }
     
     mostrarModalNumero(numeroAsignado);
+    await refreshCache(true);
     mostrarCuadros();
 }
 
@@ -378,7 +288,7 @@ function generarNumeroAleatorio(cuadro) {
     var disponibles = [];
     
     for (var num = 1; num <= cuadro.semanas; num++) {
-        if (cuadro.numerosBloqueados.indexOf(num) !== -1) continue;
+        if (cuadro.numerosBloqueados && cuadro.numerosBloqueados.indexOf(num) !== -1) continue;
         
         var ocupado = false;
         for (var i = 0; i < cuadro.participantes.length; i++) {
@@ -417,7 +327,7 @@ function cerrarModal() {
     document.getElementById('modalCuadro').classList.remove('active');
 }
 
-document.getElementById('formCuadro').addEventListener('submit', function(e) {
+document.getElementById('formCuadro').addEventListener('submit', async function(e) {
     e.preventDefault();
     
     if (!esAdmin) {
@@ -446,26 +356,22 @@ document.getElementById('formCuadro').addEventListener('submit', function(e) {
         }
     }
     
-    var nuevoCuadro = {
-        id: 'cuadro_' + Date.now(),
+    // CREAR EN SHEETS
+    var result = await crearCuadroSheets({
         nombre: nombre,
         semanas: semanas,
         montoSemanal: monto,
-        numerosBloqueados: bloqueados,
-        participantes: [],
-        comprobantes: [], // NUEVO: Array de comprobantes
-        estado: 'abierto',
-        semanaActual: 0,
-        fechaCreacion: new Date().toISOString(),
-        creadoPor: usuarioActual.id
-    };
+        numerosBloqueados: bloqueados
+    });
     
-    var cuadros = JSON.parse(localStorage.getItem('cuadros')) || [];
-    cuadros.push(nuevoCuadro);
-    localStorage.setItem('cuadros', JSON.stringify(cuadros));
+    if (!result.success) {
+        alert('Error al crear cuadro: ' + (result.error || 'Desconocido'));
+        return;
+    }
     
     cerrarModal();
     this.reset();
+    await refreshCache(true);
     mostrarCuadros();
     
     alert('Cuadro creado exitosamente.');
@@ -477,20 +383,11 @@ function cerrarSesion() {
 }
 
 function verDetallesCuadro(cuadroId) {
-    var cuadros = JSON.parse(localStorage.getItem('cuadros')) || [];
-    var cuadro = null;
-    
-    for (var i = 0; i < cuadros.length; i++) {
-        if (cuadros[i].id === cuadroId) {
-            cuadro = cuadros[i];
-            break;
-        }
-    }
-    
+    var cuadro = getCachedCuadros().find(function(c) { return c.id === cuadroId; });
     if (!cuadro) return;
     
     var mensaje = 'CUADRO: ' + cuadro.nombre + '\n\n';
-    mensaje += 'PARTICIPANTES Y SUS NÚMEROS:\n';
+    mensaje += 'PARTICIPANTES:\n';
     
     var ordenados = cuadro.participantes.slice().sort(function(a, b) {
         return a.numero - b.numero;
@@ -503,17 +400,9 @@ function verDetallesCuadro(cuadroId) {
         mensaje += '\n';
     }
     
-    if (cuadro.numerosBloqueados.length > 0) {
+    if (cuadro.numerosBloqueados && cuadro.numerosBloqueados.length > 0) {
         mensaje += '\nNÚMEROS BLOQUEADOS: ' + cuadro.numerosBloqueados.join(', ');
     }
     
     alert(mensaje);
 }
-
-// NUEVO: Ver comprobantes del cuadro (redirige a admin con filtro)
-function verComprobantesCuadro(cuadroId) {
-    localStorage.setItem('cuadroFiltroComprobantes', cuadroId);
-    window.location.href = 'admin.html?tab=comprobantes';
-}
-
-
