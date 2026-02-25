@@ -6,6 +6,7 @@
     <title>Cuadros App - Login</title>
     <link rel="stylesheet" href="login.css">
     <!-- SUPABASE CDN -->
+    <script src="https://cdnABASE CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
@@ -25,7 +26,8 @@
                 Bienvenido a Cuadros App, gestiona tus cuadros y usuarios de manera segura.
             </p>
             
-            <form id="loginForm">
+            <!-- onsubmit="return false" evita recarga -->
+            <form id="loginForm" onsubmit="return false;">
                 <div class="input-group">
                     <label for="username">Usuario</label>
                     <input 
@@ -60,8 +62,29 @@
             </div>
         </div>
     </div>
+<!-- DEBUG: Ver errores en pantalla -->
+<div id="debugConsole" style="position: fixed; bottom: 0; left: 0; right: 0; background: black; color: lime; padding: 10px; font-size: 12px; max-height: 200px; overflow-y: auto; z-index: 9999;">
+    <strong>DEBUG:</strong><br>
+</div>
+
+<script>
+// Capturar todos los errores y mostrarlos en pantalla
+window.onerror = function(msg, url, line) {
+    document.getElementById('debugConsole').innerHTML += 'ERROR: ' + msg + ' (linea ' + line + ')<br>';
+    return false;
+};
+
+// Redirigir console.log a la pantalla
+var originalLog = console.log;
+console.log = function() {
+    var args = Array.prototype.slice.call(arguments);
+    originalLog.apply(console, args);
+    document.getElementById('debugConsole').innerHTML += args.join(' ') + '<br>';
+};
+</script>
+
     
+    <!-- Script al final del body -->
     <script src="login.js"></script>
 </body>
 </html>
-
