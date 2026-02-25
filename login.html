@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cuadros App - Login</title>
     <link rel="stylesheet" href="login.css">
-    <!-- SUPABASE CDN -->
+    <!-- SUPABASE -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
@@ -22,45 +22,104 @@
             </div>
             
             <p class="welcome-text">
-                Bienvenido a Cuadros App, gestiona tus cuadros y usuarios de manera segura.
+                Bienvenido a Cuadros App
             </p>
             
             <form id="loginForm">
                 <div class="input-group">
                     <label for="username">Usuario</label>
-                    <input 
-                        type="text" 
-                        id="username" 
-                        required 
-                        autocomplete="off"
-                        placeholder="Ingresa tu usuario"
-                    >
+                    <input type="text" id="username" required placeholder="administrador">
                 </div>
                 
                 <div class="input-group">
                     <label for="password">Contraseña</label>
-                    <input 
-                        type="password" 
-                        id="password" 
-                        required 
-                        placeholder="Ingresa tu contraseña"
-                    >
+                    <input type="password" id="password" required placeholder="billy.24">
                 </div>
                 
                 <div id="errorMessage" class="error-message"></div>
                 
-                <button type="submit" class="btn-login">
-                    Ingresar
-                </button>
+                <button type="submit" class="btn-login">Ingresar</button>
             </form>
-            
-            <div class="support-info">
-                <p>¿Problemas para acceder?</p>
-                <p class="phone">📞 0978-93-3789</p>
-            </div>
         </div>
     </div>
-    
-    <script src="login.js"></script>
+
+    <script>
+        // CONFIGURACIÓN SUPABASE
+        const SUPABASE_URL = 'https://ulylpdeutafjuuevdllz.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_rygFKvTzyxTvn9SfTHcYdA_tEeS6OTH';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        console.log('Login cargado');
+
+        // Convertir a minúsculas
+        document.getElementById('username').addEventListener('input', function(e) {
+            e.target.value = e.target.value.toLowerCase();
+        });
+
+        // LOGIN
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            var username = document.getElementById('username').value.trim();
+            var password = document.getElementById('password').value;
+            var errorDiv = document.getElementById('errorMessage');
+            
+            errorDiv.textContent = 'Verificando...';
+            errorDiv.style.color = '#666';
+            
+            console.log('Intentando login:', username);
+
+            try {
+                const { data: usuarios, error } = await supabase
+                    .from('usuarios')
+                    .select('*')
+                    .eq('usuario', username)
+                    .eq('password', password)
+                    .eq('status', 'active');
+
+                console.log('Respuesta:', usuarios, error);
+
+                if (error) {
+                    errorDiv.textContent = 'Error: ' + error.message;
+                    errorDiv.style.color = 'red';
+                    return;
+                }
+
+                if (!usuarios || usuarios.length === 0) {
+                    errorDiv.textContent = 'Usuario o contraseña incorrectos';
+                    errorDiv.style.color = 'red';
+                    return;
+                }
+
+                // ÉXITO
+                var usuario = usuarios[0];
+                
+                // Guardar sesión
+                localStorage.setItem('sesionActiva', JSON.stringify({
+                    id: usuario.id,
+                    usuario: usuario.usuario,
+                    rol: usuario.rol
+                }));
+
+                // Actualizar último acceso
+                await supabase
+                    .from('usuarios')
+                    .update({ ultimo_acceso: new Date().toISOString() })
+                    .eq('id', usuario.id);
+
+                errorDiv.textContent = '¡Bienvenido!';
+                errorDiv.style.color = 'green';
+                
+                setTimeout(function() {
+                    window.location.href = 'panel.html';
+                }, 500);
+
+            } catch (err) {
+                console.error('Error:', err);
+                errorDiv.textContent = 'Error de conexión. Intenta de nuevo.';
+                errorDiv.style.color = 'red';
+            }
+        });
+    </script>
 </body>
 </html>
