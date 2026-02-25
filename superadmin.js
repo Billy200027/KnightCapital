@@ -1,12 +1,12 @@
-// superadmin.js - Lógica del superadmin
+// superadmin.js - VERSIÓN GOOGLE SHEETS
 
 var usuarioActual = null;
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     verificarSuperAdmin();
     configurarMenu();
-    cargarEstadoGlobal();
-    cargarResumen();
+    await cargarEstadoGlobal();
+    await cargarResumen();
     cargarUsuarios();
     cargarCuadros();
 });
@@ -40,17 +40,15 @@ function configurarMenu() {
     });
 }
 
-function cargarEstadoGlobal() {
-    var config = JSON.parse(localStorage.getItem('configuracion')) || {
-        estado_global: 'activo',
-        ultimaModificacion: '-',
-        modificadoPor: '-'
-    };
+async function cargarEstadoGlobal() {
+    var config = await verificarEstadoGlobal();
     
     var toggle = document.getElementById('toggleEstado');
     var label = document.getElementById('toggleLabel');
     var display = document.getElementById('estadoActualDisplay');
     var info = document.getElementById('infoUltimoCambio');
+    
+    if (!toggle) return;
     
     if (config.estado_global === 'suspendido') {
         toggle.checked = false;
@@ -64,61 +62,54 @@ function cargarEstadoGlobal() {
         display.innerHTML = '<span class="indicator activo">●</span><span class="texto">SISTEMA ACTIVO</span>';
     }
     
-    var fecha = config.ultimaModificacion !== '-' ? 
+    var fecha = config.ultimaModificacion ? 
         new Date(config.ultimaModificacion).toLocaleString('es-ES') : '-';
-    info.textContent = 'Último cambio: ' + fecha + ' por ' + (config.modificadoPor || '-');
+    var por = config.modificadoPor || '-';
+    info.textContent = 'Último cambio: ' + fecha + ' por ' + por;
 }
 
-function cambiarEstadoGlobal() {
+async function cambiarEstadoGlobal() {
     var toggle = document.getElementById('toggleEstado');
     var nuevoEstado = toggle.checked ? 'activo' : 'suspendido';
     
-    if (!confirm('¿Estás seguro de ' + (toggle.checked ? 'ACTIVAR' : 'SUSPENDER') + ' el sistema?\n\n' +
-        (toggle.checked ? 'Todos los usuarios podrán iniciar sesión.' : 'Solo el Super Admin podrá acceder.'))) {
-        toggle.checked = !toggle.checked; // Revertir
+    if (!confirm('¿Estás seguro de ' + (toggle.checked ? 'ACTIVAR' : 'SUSPENDER') + ' el sistema?')) {
+        toggle.checked = !toggle.checked;
         return;
     }
     
-    var config = {
-        estado_global: nuevoEstado,
-        ultimaModificacion: new Date().toISOString(),
-        modificadoPor: usuarioActual.usuario
-    };
+    var result = await toggleEstadoGlobalSheets(nuevoEstado, usuarioActual.usuario);
     
-    localStorage.setItem('configuracion', JSON.stringify(config));
-    cargarEstadoGlobal();
-    
-    alert('✅ Sistema ' + (toggle.checked ? 'ACTIVADO' : 'SUSPENDIDO') + ' correctamente');
+    if (result.success) {
+        await cargarEstadoGlobal();
+        alert('✅ Sistema ' + (toggle.checked ? 'ACTIVADO' : 'SUSPENDIDO'));
+    } else {
+        alert('Error: ' + (result.error || 'No se pudo cambiar estado'));
+        toggle.checked = !toggle.checked;
+    }
 }
 
-function cargarResumen() {
-    var usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
-    var cuadros = JSON.parse(localStorage.getItem('cuadros')) || [];
+async function cargarResumen() {
+    await refreshCache(true);
+    var usuarios = getCachedUsuarios();
+    var cuadros = getCachedCuadros();
     
-    var activos = 0;
-    var comprobantesPendientes = 0;
+    var activos = cuadros.filter(function(c) { return c.estado === 'activo'; }).length;
     
+    // Contar comprobantes pendientes
+    var pendientes = 0;
     for (var i = 0; i < cuadros.length; i++) {
-        if (cuadros[i].estado === 'activo') {
-            activos++;
-        }
-        if (cuadros[i].comprobantes) {
-            for (var j = 0; j < cuadros[i].comprobantes.length; j++) {
-                if (cuadros[i].comprobantes[j].estado === 'pendiente') {
-                    comprobantesPendientes++;
-                }
-            }
-        }
+        var comps = await getComprobantesDrive(cuadros[i].id);
+        pendientes += comps.filter(function(c) { return c.estado === 'pendiente'; }).length;
     }
     
     document.getElementById('statUsuarios').textContent = usuarios.length;
     document.getElementById('statCuadros').textContent = cuadros.length;
     document.getElementById('statActivos').textContent = activos;
-    document.getElementById('statComprobantes').textContent = comprobantesPendientes;
+    document.getElementById('statComprobantes').textContent = pendientes;
 }
 
 function cargarUsuarios() {
-    var usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+    var usuarios = getCachedUsuarios();
     var tbody = document.getElementById('tablaUsuariosSuper');
     
     tbody.innerHTML = '';
@@ -148,7 +139,7 @@ function cargarUsuarios() {
 }
 
 function cargarCuadros() {
-    var cuadros = JSON.parse(localStorage.getItem('cuadros')) || [];
+    var cuadros = getCachedCuadros();
     var tbody = document.getElementById('tablaCuadrosSuper');
     
     tbody.innerHTML = '';
@@ -157,12 +148,7 @@ function cargarCuadros() {
         var c = cuadros[i];
         var tr = document.createElement('tr');
         
-        var participantesReales = 0;
-        for (var j = 0; j < c.participantes.length; j++) {
-            if (!c.participantes[j].esSistema) {
-                participantesReales++;
-            }
-        }
+        var participantesReales = c.participantes.filter(function(p) { return !p.esSistema; }).length;
         
         tr.innerHTML = 
             '<td><strong>' + c.nombre + '</strong></td>' +
@@ -177,12 +163,10 @@ function cargarCuadros() {
 
 function verDatosSistema() {
     var datos = {
-        configuracion: JSON.parse(localStorage.getItem('configuracion')),
-        usuarios: JSON.parse(localStorage.getItem('usuarios')),
-        cuadros: JSON.parse(localStorage.getItem('cuadros')),
-        cuentasBancarias: JSON.parse(localStorage.getItem('cuentasBancarias')),
-        notificaciones: JSON.parse(localStorage.getItem('notificaciones')),
-        sesionActiva: JSON.parse(localStorage.getItem('sesionActiva'))
+        fecha: new Date().toISOString(),
+        usuarios: getCachedUsuarios(),
+        cuadros: getCachedCuadros(),
+        configuracion: { estado_global: 'ver en Sheets' }
     };
     
     document.getElementById('datosSistemaJSON').value = JSON.stringify(datos, null, 2);
@@ -204,5 +188,3 @@ function cerrarSesion() {
     localStorage.removeItem('sesionActiva');
     window.location.href = 'login.html';
 }
-
-
