@@ -1,11 +1,20 @@
-// index.js - VERSIÓN SUPABASE FUNCIONAL
+// index.js - VERSIÓN CON SOLUCIÓN CORS PARA GITHUB PAGES
 
-// Configurar Supabase global (desde CDN)
 const SUPABASE_URL = 'https://ulylpdeutafjuuevdllz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_rygFKvTzyxTvn9SfTHcYdA_tEeS6OTH';
 
-// Crear cliente Supabase
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Crear cliente Supabase con opciones especiales
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+        autoRefreshToken: false,
+        persistSession: false
+    },
+    global: {
+        headers: {
+            'Access-Control-Allow-Origin': '*'
+        }
+    }
+});
 
 // Prevenir copiar
 document.addEventListener('copy', function(e) {
@@ -18,23 +27,11 @@ document.addEventListener('cut', function(e) {
     return false;
 });
 
-// Función principal
-async function iniciar() {
+// Función para redirigir sin esperar a Supabase (más rápido)
+function iniciar() {
     console.log('=== INICIANDO CUADROS APP ===');
     
-    try {
-        // Verificar conexión con Supabase
-        const { data, error } = await supabase.from('usuarios').select('count');
-        if (error) {
-            console.log('Error conexión:', error);
-        } else {
-            console.log('✅ Conexión a Supabase OK');
-        }
-    } catch (err) {
-        console.log('Error:', err);
-    }
-    
-    // Redirigir después de 2 segundos
+    // Redirigir inmediatamente sin esperar
     setTimeout(function() {
         window.location.href = 'login.html';
     }, 2000);
