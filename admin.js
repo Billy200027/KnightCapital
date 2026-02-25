@@ -76,7 +76,6 @@ async function crearUsuario(e) {
     }
     
     try {
-        // Verificar si existe
         const { data: existentes, error: errExistentes } = await supabase
             .from('usuarios')
             .select('*')
@@ -89,7 +88,6 @@ async function crearUsuario(e) {
             return;
         }
         
-        // Crear usuario
         const { error } = await supabase
             .from('usuarios')
             .insert([{
@@ -110,7 +108,6 @@ async function crearUsuario(e) {
         alert('Usuario creado exitosamente');
         
     } catch (err) {
-        console.error('Error:', err);
         alert('Error de conexión');
     }
 }
@@ -157,7 +154,6 @@ async function mostrarUsuarios() {
         }
         
     } catch (err) {
-        console.error('Error:', err);
         tbody.innerHTML = '<tr><td colspan="5">Error de conexión</td></tr>';
     }
 }
@@ -179,7 +175,6 @@ async function eliminarUsuario(userId) {
         alert('Usuario desactivado correctamente.');
         
     } catch (err) {
-        console.error('Error:', err);
         alert('Error eliminando usuario');
     }
 }
@@ -200,89 +195,5 @@ async function crearCuentaBancaria(e) {
             .from('cuentas_bancarias')
             .insert([cuenta]);
         
-        if (error) {
-            alert('Error registrando cuenta: ' + error.message);
-            return;
-        }
-        
-        document.getElementById('formBanco').reset();
-        mostrarCuentasBancarias();
-        alert('Cuenta bancaria registrada');
-        
-    } catch (err) {
-        console.error('Error:', err);
-        alert('Error de conexión');
-    }
-}
+       
 
-async function mostrarCuentasBancarias() {
-    var contenedor = document.getElementById('listaCuentas');
-    
-    try {
-        const { data: cuentas, error } = await supabase
-            .from('cuentas_bancarias')
-            .select('*')
-            .order('fecha_registro', { ascending: false });
-        
-        if (error) {
-            contenedor.innerHTML = '<p class="empty">Error cargando cuentas</p>';
-            return;
-        }
-        
-        if (!cuentas || cuentas.length === 0) {
-            contenedor.innerHTML = '<p class="empty">No hay cuentas registradas</p>';
-            return;
-        }
-        
-        contenedor.innerHTML = '';
-        
-        for (var i = 0; i < cuentas.length; i++) {
-            var c = cuentas[i];
-            
-            var div = document.createElement('div');
-            div.className = 'account-item';
-            
-            div.innerHTML = 
-                '<div class="account-info">' +
-                '<h4>' + c.banco + '</h4>' +
-                '<p>Cuenta: •••• ' + c.numero.slice(-4) + '</p>' +
-                '<p>Titular: ' + c.titular + '</p>' +
-                '<span class="account-type">' + c.tipo + '</span>' +
-                '</div>' +
-                '<button class="btn-delete" onclick="eliminarCuenta(\'' + c.id + '\')">Eliminar</button>';
-            
-            contenedor.appendChild(div);
-        }
-        
-    } catch (err) {
-        console.error('Error:', err);
-        contenedor.innerHTML = '<p class="empty">Error de conexión</p>';
-    }
-}
-
-async function eliminarCuenta(cuentaId) {
-    if (!confirm('¿Eliminar esta cuenta bancaria?')) return;
-    
-    try {
-        const { error } = await supabase
-            .from('cuentas_bancarias')
-            .delete()
-            .eq('id', cuentaId);
-        
-        if (error) {
-            alert('Error eliminando cuenta');
-            return;
-        }
-        
-        mostrarCuentasBancarias();
-        
-    } catch (err) {
-        console.error('Error:', err);
-        alert('Error de conexión');
-    }
-}
-
-function cerrarSesion() {
-    localStorage.removeItem('sesionActiva');
-    window.location.href = 'login.html';
-}
