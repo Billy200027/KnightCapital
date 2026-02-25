@@ -1,4 +1,4 @@
-// login.js - VERSIÓN GITHUB PAGES COMPATIBLE
+// login.js - VERSIÓN SUPABASE FUNCIONAL
 
 const SUPABASE_URL = 'https://ulylpdeutafjuuevdllz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_rygFKvTzyxTvn9SfTHcYdA_tEeS6OTH';
@@ -34,47 +34,31 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
     
     errorDiv.textContent = '';
     
-    // Mostrar mensaje de carga
-    errorDiv.textContent = 'Conectando...';
-    errorDiv.style.color = '#666';
-    
     try {
-        // Intentar conexión con timeout
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout')), 10000)
-        );
-        
-        const fetchPromise = supabase
+        const { data: usuarios, error } = await supabase
             .from('usuarios')
             .select('*')
             .eq('usuario', username)
             .eq('password', password)
             .eq('status', 'active');
         
-        const { data: usuarios, error } = await Promise.race([fetchPromise, timeoutPromise]);
-        
         if (error) {
-            console.error('Error Supabase:', error);
-            errorDiv.textContent = 'Error de conexión: ' + error.message;
-            errorDiv.style.color = '#e74c3c';
+            errorDiv.textContent = 'Error de conexión';
             return;
         }
         
         if (!usuarios || usuarios.length === 0) {
             errorDiv.textContent = 'Usuario o contraseña incorrectos';
-            errorDiv.style.color = '#e74c3c';
             return;
         }
         
         var encontrado = usuarios[0];
         
-        // Actualizar último acceso (no esperamos respuesta)
-        supabase
+        // Actualizar último acceso
+        await supabase
             .from('usuarios')
             .update({ ultimo_acceso: new Date().toISOString() })
-            .eq('id', encontrado.id)
-            .then(() => console.log('Último acceso actualizado'))
-            .catch(err => console.log('Error actualizando acceso:', err));
+            .eq('id', encontrado.id);
         
         // Guardar sesión
         var sesion = {
@@ -90,8 +74,6 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         window.location.href = 'panel.html';
         
     } catch (err) {
-        console.error('Error:', err);
-        errorDiv.textContent = 'Error de conexión. Intenta recargar la página.';
-        errorDiv.style.color = '#e74c3c';
+        errorDiv.textContent = 'Error inesperado';
     }
 });
