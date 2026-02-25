@@ -419,3 +419,4 @@ function verDetallesCuadro(cuadroId) {
     alert(mensaje);
 }
 
+
