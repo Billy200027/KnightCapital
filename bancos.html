@@ -167,132 +167,121 @@
         </section>
     </main>
 
-    <script>
-        // Configuración básica (copiar de panel.js)
-        var usuarioActual = null;
-        var esAdmin = false;
+<script>
+    var usuarioActual = null;
+    var esAdmin = false;
+    
+    document.addEventListener('DOMContentLoaded', async function() {
+        verificarSesion();
+        configurarInterfaz();
+        await refreshCache(true);
+        mostrarBancos();
+    });
+    
+    function verificarSesion() {
+        var sesion = JSON.parse(localStorage.getItem('sesionActiva'));
+        if (!sesion) {
+            window.location.href = 'login.html';
+            return;
+        }
+        usuarioActual = sesion;
+        esAdmin = (sesion.rol === 'admin');
+    }
+    
+    function configurarInterfaz() {
+        document.getElementById('nombreUsuario').textContent = usuarioActual.usuario;
+        document.getElementById('rolUsuario').textContent = esAdmin ? 'Administrador' : 'Usuario';
         
-        document.addEventListener('DOMContentLoaded', function() {
-            verificarSesion();
-            configurarInterfaz();
-            mostrarBancos();
+        if (esAdmin) {
+            var adminElements = document.querySelectorAll('.admin-only');
+            for (var i = 0; i < adminElements.length; i++) {
+                adminElements[i].style.display = 'block';
+            }
+        }
+        
+        var menuToggle = document.getElementById('menuToggle');
+        var sidebar = document.getElementById('sidebar');
+        var overlay = document.getElementById('menuOverlay');
+        
+        menuToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
         });
         
-        function verificarSesion() {
-            var sesion = JSON.parse(localStorage.getItem('sesionActiva'));
-            if (!sesion) {
-                window.location.href = 'login.html';
-                return;
-            }
-            usuarioActual = sesion;
-            esAdmin = (sesion.rol === 'admin');
+        overlay.addEventListener('click', function() {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+        });
+    }
+    
+    function mostrarBancos() {
+        var cuentas = getCachedCuentasBanco();
+        var contenedor = document.getElementById('listaBancos');
+        
+        var activas = cuentas.filter(function(c) { return c.activa !== false; });
+        
+        if (activas.length === 0) {
+            contenedor.innerHTML = '<p class="empty">No hay cuentas bancarias registradas aún.</p>';
+            return;
         }
         
-        function configurarInterfaz() {
-            document.getElementById('nombreUsuario').textContent = usuarioActual.usuario;
-            document.getElementById('rolUsuario').textContent = esAdmin ? 'Administrador' : 'Usuario';
-            
-            if (esAdmin) {
-                var adminElements = document.querySelectorAll('.admin-only');
-                for (var i = 0; i < adminElements.length; i++) {
-                    adminElements[i].style.display = 'block';
-                }
-            }
-            
-            var menuToggle = document.getElementById('menuToggle');
-            var sidebar = document.getElementById('sidebar');
-            var overlay = document.getElementById('menuOverlay');
-            
-            menuToggle.addEventListener('click', function(e) {
-                e.stopPropagation();
-                sidebar.classList.toggle('open');
-                overlay.classList.toggle('active');
-            });
-            
-            overlay.addEventListener('click', function() {
-                sidebar.classList.remove('open');
-                overlay.classList.remove('active');
-            });
-        }
+        contenedor.innerHTML = '';
         
-        function mostrarBancos() {
-            var cuentas = JSON.parse(localStorage.getItem('cuentasBancarias')) || [];
-            var contenedor = document.getElementById('listaBancos');
+        for (var i = 0; i < activas.length; i++) {
+            var c = activas[i];
+            var div = document.createElement('div');
+            div.className = 'banco-card';
             
-            // Filtrar solo activas
-            var activas = [];
-            for (var i = 0; i < cuentas.length; i++) {
-                if (cuentas[i].activa !== false) {
-                    activas.push(cuentas[i]);
-                }
-            }
+            div.innerHTML = 
+                '<div class="banco-header">' +
+                '<div class="banco-icon">🏦</div>' +
+                '<div class="banco-title">' +
+                '<h3>' + c.banco + '</h3>' +
+                '<span>Cuenta de ' + c.tipo + '</span>' +
+                '</div>' +
+                '</div>' +
+                '<div class="banco-details">' +
+                '<div class="detail-row">' +
+                '<span>Número de cuenta:</span>' +
+                '<strong id="numero-' + i + '">' + c.numero + '</strong>' +
+                '</div>' +
+                '<div class="detail-row">' +
+                '<span>Titular:</span>' +
+                '<strong>' + c.titular + '</strong>' +
+                '</div>' +
+                '</div>' +
+                '<button class="copy-btn" onclick="copiarNumero(\'' + c.numero + '\', this)">' +
+                '📋 Copiar número de cuenta' +
+                '</button>';
             
-            if (activas.length === 0) {
-                contenedor.innerHTML = '<p class="empty">No hay cuentas bancarias registradas aún.</p>';
-                return;
-            }
-            
-            contenedor.innerHTML = '';
-            
-            for (var i = 0; i < activas.length; i++) {
-                var c = activas[i];
-                var div = document.createElement('div');
-                div.className = 'banco-card';
-                
-                div.innerHTML = 
-                    '<div class="banco-header">' +
-                    '<div class="banco-icon">🏦</div>' +
-                    '<div class="banco-title">' +
-                    '<h3>' + c.banco + '</h3>' +
-                    '<span>Cuenta de ' + c.tipo + '</span>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div class="banco-details">' +
-                    '<div class="detail-row">' +
-                    '<span>Número de cuenta:</span>' +
-                    '<strong id="numero-' + i + '">' + c.numero + '</strong>' +
-                    '</div>' +
-                    '<div class="detail-row">' +
-                    '<span>Titular:</span>' +
-                    '<strong>' + c.titular + '</strong>' +
-                    '</div>' +
-                    '</div>' +
-                    '<button class="copy-btn" onclick="copiarNumero(\'' + c.numero + '\', this)">' +
-                    '📋 Copiar número de cuenta' +
-                    '</button>';
-                
-                if (c.instrucciones) {
-                    div.innerHTML += '<div class="instrucciones"><strong>📋 Instrucciones:</strong>' + c.instrucciones + '</div>';
-                }
-                
-                contenedor.appendChild(div);
-            }
+            contenedor.appendChild(div);
         }
+    }
+    
+    function copiarNumero(numero, btn) {
+        var temp = document.createElement('textarea');
+        temp.value = numero;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
         
-        function copiarNumero(numero, btn) {
-            // Crear elemento temporal
-            var temp = document.createElement('textarea');
-            temp.value = numero;
-            document.body.appendChild(temp);
-            temp.select();
-            document.execCommand('copy');
-            document.body.removeChild(temp);
-            
-            // Cambiar texto del botón
-            var originalText = btn.innerHTML;
-            btn.innerHTML = '✅ ¡Copiado!';
-            btn.classList.add('copied');
-            
-            setTimeout(function() {
-                btn.innerHTML = originalText;
-                btn.classList.remove('copied');
-            }, 2000);
-        }
+        var originalText = btn.innerHTML;
+        btn.innerHTML = '✅ ¡Copiado!';
+        btn.classList.add('copied');
         
-        function cerrarSesion() {
-            localStorage.removeItem('sesionActiva');
-            window.location.href = 'login.html';
-        }
-    </script>
+        setTimeout(function() {
+            btn.innerHTML = originalText;
+            btn.classList.remove('copied');
+        }, 2000);
+    }
+    
+    function cerrarSesion() {
+        localStorage.removeItem('sesionActiva');
+        window.location.href = 'login.html';
+    }
+</script>
+
 </body>
 </html>
