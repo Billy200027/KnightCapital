@@ -1,15 +1,14 @@
-// perfil.js - Lógica de la página de perfil
+// perfil.js - VERSIÓN GOOGLE SHEETS
 
 var usuarioActual = null;
 var esAdmin = false;
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     verificarSesion();
     configurarInterfaz();
-    cargarDatosUsuario();
-    cargarCuentasAdmin();
-    cargarNotificaciones();
-    limpiarNotificacionesViejas();
+    await cargarDatosUsuario();
+    await cargarCuentasAdmin();
+    await cargarNotificaciones();
 });
 
 function verificarSesion() {
@@ -49,16 +48,10 @@ function configurarInterfaz() {
     });
 }
 
-function cargarDatosUsuario() {
-    var usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
-    var usuario = null;
-    
-    for (var i = 0; i < usuarios.length; i++) {
-        if (usuarios[i].id === usuarioActual.id) {
-            usuario = usuarios[i];
-            break;
-        }
-    }
+async function cargarDatosUsuario() {
+    await refreshCache(true);
+    var usuarios = getCachedUsuarios();
+    var usuario = usuarios.find(function(u) { return u.id === usuarioActual.id; });
     
     if (!usuario) return;
     
@@ -66,7 +59,6 @@ function cargarDatosUsuario() {
     document.getElementById('infoRol').textContent = usuario.rol === 'admin' ? 'Administrador' : 'Usuario';
     document.getElementById('infoFecha').textContent = new Date(usuario.fechaRegistro).toLocaleDateString('es-ES');
     
-    // Cargar cuenta bancaria si existe
     if (usuario.cuentaBancaria) {
         mostrarCuentaGuardada(usuario.cuentaBancaria);
     }
@@ -86,11 +78,10 @@ function mostrarCuentaGuardada(cuenta) {
 }
 
 function editarMiCuenta() {
-    location.reload(); // Recarga para mostrar el formulario de nuevo
+    location.reload();
 }
 
-// Formulario de cuenta bancaria
-document.getElementById('formMiBanco').addEventListener('submit', function(e) {
+document.getElementById('formMiBanco').addEventListener('submit', async function(e) {
     e.preventDefault();
     
     var cuenta = {
@@ -100,23 +91,21 @@ document.getElementById('formMiBanco').addEventListener('submit', function(e) {
         titular: document.getElementById('miTitular').value
     };
     
-    var usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+    var result = await actualizarUsuarioSheets(usuarioActual.id, {
+        cuentaBancaria: cuenta
+    });
     
-    for (var i = 0; i < usuarios.length; i++) {
-        if (usuarios[i].id === usuarioActual.id) {
-            usuarios[i].cuentaBancaria = cuenta;
-            break;
-        }
+    if (!result.success) {
+        alert('Error al guardar cuenta');
+        return;
     }
     
-    localStorage.setItem('usuarios', JSON.stringify(usuarios));
-    
+    await refreshCache(true);
     mostrarCuentaGuardada(cuenta);
     alert('Cuenta bancaria guardada correctamente');
 });
 
-// Cambiar contraseña
-document.getElementById('formPassword').addEventListener('submit', function(e) {
+document.getElementById('formPassword').addEventListener('submit', async function(e) {
     e.preventDefault();
     
     var actual = document.getElementById('passActual').value;
@@ -133,38 +122,32 @@ document.getElementById('formPassword').addEventListener('submit', function(e) {
         return;
     }
     
-    var usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
-    var encontrado = false;
-    
-    for (var i = 0; i < usuarios.length; i++) {
-        if (usuarios[i].id === usuarioActual.id && usuarios[i].password === actual) {
-            usuarios[i].password = nueva;
-            encontrado = true;
-            break;
-        }
-    }
-    
-    if (!encontrado) {
+    // Verificar actual primero
+    var loginCheck = await loginSheets(usuarioActual.usuario, actual);
+    if (!loginCheck.success) {
         alert('Contraseña actual incorrecta');
         return;
     }
     
-    localStorage.setItem('usuarios', JSON.stringify(usuarios));
+    var result = await actualizarUsuarioSheets(usuarioActual.id, {
+        password: nueva
+    });
+    
+    if (!result.success) {
+        alert('Error al cambiar contraseña');
+        return;
+    }
+    
     this.reset();
     alert('Contraseña actualizada correctamente');
 });
 
-function cargarCuentasAdmin() {
-    var cuentas = JSON.parse(localStorage.getItem('cuentasBancarias')) || [];
+async function cargarCuentasAdmin() {
+    await refreshCache(true);
+    var cuentas = getCachedCuentasBanco();
     var contenedor = document.getElementById('cuentasAdmin');
     
-    // Filtrar solo activas
-    var activas = [];
-    for (var i = 0; i < cuentas.length; i++) {
-        if (cuentas[i].activa !== false) {
-            activas.push(cuentas[i]);
-        }
-    }
+    var activas = cuentas.filter(function(c) { return c.activa !== false; });
     
     if (activas.length === 0) {
         contenedor.innerHTML = '<p class="empty">No hay cuentas bancarias disponibles para pagos</p>';
@@ -190,84 +173,79 @@ function cargarCuentasAdmin() {
     }
 }
 
-function cargarNotificaciones() {
-    var notificaciones = JSON.parse(localStorage.getItem('notificaciones')) || [];
+async function cargarNotificaciones() {
+    // Las notificaciones se generan localmente basadas en cuadros
+    var cuadros = getCachedCuadros();
     var contenedor = document.getElementById('listaNotificaciones');
     var contador = document.getElementById('contadorNotif');
     
-    var misNotifs = [];
-    for (var i = 0; i < notificaciones.length; i++) {
-        if (notificaciones[i].userId === usuarioActual.id) {
-            misNotifs.push(notificaciones[i]);
+    var notificaciones = [];
+    
+    // Generar notificaciones de pagos pendientes
+    for (var i = 0; i < cuadros.length; i++) {
+        var cuadro = cuadros[i];
+        if (cuadro.estado !== 'activo') continue;
+        
+        var miParticipacion = cuadro.participantes.find(function(p) {
+            return p.userId === usuarioActual.id;
+        });
+        
+        if (!miParticipacion) continue;
+        
+        // Verificar si ya pagó esta semana (buscar comprobante)
+        var comps = await getComprobantesDrive(cuadro.id);
+        var yaPago = comps.find(function(c) {
+            return c.userId === usuarioActual.id && 
+                   parseInt(c.semana) === cuadro.semanaActual;
+        });
+        
+        if (!yaPago && miParticipacion.numero !== cuadro.semanaActual) {
+            // Debe pagar
+            notificaciones.push({
+                tipo: 'pago_requerido',
+                mensaje: 'Semana ' + cuadro.semanaActual + ' de ' + cuadro.nombre + ': Debes pagar $' + cuadro.montoSemanal,
+                cuadroNombre: cuadro.nombre,
+                fecha: new Date().toLocaleDateString(),
+                leida: false
+            });
+        } else if (yaPago && yaPago.estado === 'confirmado') {
+            // Pago confirmado
+            notificaciones.push({
+                tipo: 'pago_confirmado',
+                mensaje: '✅ Tu pago de la semana ' + cuadro.semanaActual + ' ha sido confirmado',
+                cuadroNombre: cuadro.nombre,
+                fecha: new Date(yaPago.fechaConfirmacion).toLocaleDateString(),
+                leida: true
+            });
         }
     }
     
-    contador.textContent = misNotifs.length;
+    contador.textContent = notificaciones.filter(function(n) { return !n.leida; }).length;
     
-    if (misNotifs.length === 0) {
+    if (notificaciones.length === 0) {
         contenedor.innerHTML = '<p class="empty">No tienes notificaciones</p>';
         return;
     }
     
-    // Ordenar por fecha (más recientes primero)
-    misNotifs.sort(function(a, b) {
-        return new Date(b.fechaCreacion) - new Date(a.fechaCreacion);
-    });
-    
     contenedor.innerHTML = '';
     
-    for (var i = 0; i < misNotifs.length; i++) {
-        var n = misNotifs[i];
+    notificaciones.sort(function(a, b) {
+        return (a.leida === b.leida) ? 0 : a.leida ? 1 : -1;
+    });
+    
+    for (var i = 0; i < notificaciones.length; i++) {
+        var n = notificaciones[i];
         var div = document.createElement('div');
         div.className = 'notif-item ' + (n.leida ? 'leida' : 'nueva');
-        div.setAttribute('data-id', n.id);
-        
-        var fecha = new Date(n.fechaCreacion).toLocaleDateString('es-ES');
         
         div.innerHTML = 
             '<div class="notif-mensaje">' + n.mensaje + '</div>' +
             '<div class="notif-meta">' +
-            '<span class="notif-cuadro">' + (n.cuadroNombre || 'General') + '</span>' +
-            '<span>' + fecha + '</span>' +
+            '<span class="notif-cuadro">' + n.cuadroNombre + '</span>' +
+            '<span>' + n.fecha + '</span>' +
             '</div>';
         
-        if (!n.leida) {
-            div.innerHTML += '<button class="btn-mark-read" onclick="marcarLeida(\'' + n.id + '\')">Marcar como leída</button>';
-        }
-        
         contenedor.appendChild(div);
-    }
-}
-
-function marcarLeida(notifId) {
-    var notificaciones = JSON.parse(localStorage.getItem('notificaciones')) || [];
-    
-    for (var i = 0; i < notificaciones.length; i++) {
-        if (notificaciones[i].id === notifId) {
-            notificaciones[i].leida = true;
-            break;
-        }
-    }
-    
-    localStorage.setItem('notificaciones', JSON.stringify(notificaciones));
-    cargarNotificaciones();
-}
-
-function limpiarNotificacionesViejas() {
-    var notificaciones = JSON.parse(localStorage.getItem('notificaciones')) || [];
-    var ahora = new Date();
-    
-    var filtradas = [];
-    for (var i = 0; i < notificaciones.length; i++) {
-        var fechaEliminar = new Date(notificaciones[i].autoEliminar);
-        if (fechaEliminar > ahora) {
-            filtradas.push(notificaciones[i]);
-        }
-    }
-    
-    if (filtradas.length !== notificaciones.length) {
-        localStorage.setItem('notificaciones', JSON.stringify(filtradas));
-        cargarNotificaciones();
     }
 }
 
@@ -275,5 +253,3 @@ function cerrarSesion() {
     localStorage.removeItem('sesionActiva');
     window.location.href = 'login.html';
 }
-
-
