@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cuadros App - Bienvenido</title>
     <link rel="stylesheet" href="index.css">
-    <!-- SUPABASE -->
+    <!-- SUPABASE CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
@@ -31,18 +31,14 @@
             
             <h1 class="app-title">Cuadros App</h1>
             <p class="subtitle">Sistema de Ahorro Comunitario</p>
-            <p style="color: white; margin-top: 20px; font-size: 0.9rem;">Cargando...</p>
         </div>
     </div>
 
     <script>
-        // REDIRECCIÓN SIMPLE SIN SUPABASE (para probar)
-        console.log('Splash cargado');
-        
+        // Redirección simple después de 2 segundos
         setTimeout(function() {
-            console.log('Redirigiendo...');
             window.location.href = 'login.html';
-        }, 2500);
+        }, 2000);
     </script>
 </body>
 </html>
